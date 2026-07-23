@@ -1,3 +1,100 @@
+/* Custom styles: */
+
+body {
+  background-color: #111417;
+  color: #f3f7f6;
+  font-family: 'Nunito', sans-serif;
+}
+button, input, select, textarea {
+  font: inherit;
+}
+
+.lifebud-logo {
+  width: 50px;
+  height: auto;
+}
+
+.tab-bar { /* For the tab bar and between buttons */
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 6px 12px 0;
+  margin-top: 10px;
+  background-color: #25262d;
+  border-bottom: 3px solid #555;
+}
+
+.tab { /* For each tab button */
+  padding: 1px 14px;
+  border: none;
+  border-radius: 9px 9px 0 0;
+  background-color: #44454d;
+  color: white;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background-color: #55565f;
+}
+
+.active-tab { /* For the active tab */
+  background-color: #18191f;
+}
+
+.tab-content {
+  min-height: 300px;
+  padding: 24px;
+  background-color: #18191f;
+}
+
+.entry-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.entry-card {
+  padding: 18px;
+  border: 1px solid #3a484b;
+  border-radius: 12px;
+  background-color: #20282a;
+  text-align: left;
+}
+
+.entry-card h3 {
+  margin-top: 0;
+}
+
+.entry-card small {
+  display: block;
+  margin-bottom: 12px;
+  color: #888;
+}
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(180px, 1fr)
+  );
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.collection-card {
+  min-height: 140px;
+  padding: 18px;
+  border: 1px solid #3a484b;
+  border-radius: 14px;
+  background-color: #20282a;
+  text-align: left;
+}
+
+/* Default styles: */
+
 .counter {
   font-size: 16px;
   padding: 5px 10px;
