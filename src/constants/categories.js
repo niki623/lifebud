@@ -1,11 +1,11 @@
 export const goalCategoryLabels = {
-  small: 'Small',
-  big: 'Big',
+  small: 'small goal',
+  big: 'big goal',
   milestone: 'Milestone',
 };
 
 export const accomplishmentCategoryLabels = {
-  small: 'Small Win',
-  big: 'Big Win',
-  milestone: 'Milestone',
+  small: 'small Win',
+  big: 'big Win',
+  milestone: 'milestone',
 };

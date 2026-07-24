@@ -5,23 +5,25 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
   const [goalText, setGoalText] = useState('');
   const [category, setCategory] = useState('small');
   const [isFeatured, setIsFeatured] = useState(false);
-  const [selectedCollectionIds, setSelectedCollectionIds] = useState([]);
+  const [collectionIds, setCollectionIds] = useState([]);
 
   const [editGoalId, setEditGoalId] = useState(null);
   const [editGoalText, setEditGoalText] = useState('');
   const [editCategory, setEditCategory] = useState('small');
   const [editIsFeatured, setEditIsFeatured] = useState(false);
+  const [editCollectionIds, setEditCollectionIds] = useState([]);
 
   function startEditingGoal(goal) {
     setEditGoalId(goal.id);
     setEditGoalText(goal.text);
     setEditCategory(goal.category);
     setEditIsFeatured(goal.isFeatured ?? false);
+    setEditCollectionIds(goal.collectionIds ?? []);
   }
   function saveEdit(){
     const trimmedText = editGoalText.trim();
     if(trimmedText === '') return;
-    onEditGoal(editGoalId, trimmedText, editCategory, editIsFeatured);
+    onEditGoal(editGoalId, trimmedText, editCategory, editIsFeatured, editCollectionIds);
     setEditGoalId(null);
     setEditGoalText('');
     setEditCategory('small');
@@ -29,7 +31,7 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
   }
 
   function toggleCollectionSelection(collectionId) {
-    setSelectedCollectionIds(currentIds => 
+    setCollectionIds(currentIds => 
       currentIds.includes(collectionId)
         ? currentIds.filter(id => id !== collectionId)
         : [...currentIds, collectionId]
@@ -73,7 +75,7 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
               <label key={collection.id}>
                 <input
                   type="checkbox"
-                  checked={selectedCollectionIds.includes(collection.id)}
+                  checked={collectionIds.includes(collection.id)}
                   onChange={() => toggleCollectionSelection(collection.id)}
                 />
                 {collection.name}
@@ -111,6 +113,29 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
                     <option value="big">Big</option>
                     <option value="milestone">Milestone</option>
                   </select>
+                  <fieldset>
+                    <legend>Add to collections</legend>
+                    {collections.length === 0 ? (
+                      <p>No collections yet.</p>
+                    ) : (
+                      collections.map(collection => (
+                        <label key={collection.id}>
+                          <input
+                            type="checkbox"
+                            checked={editCollectionIds.includes(collection.id)}
+                            onChange={() => {
+                              setEditCollectionIds(currentIds => 
+                                currentIds.includes(collection.id)
+                                  ? currentIds.filter(id => id !== collection.id)
+                                  : [...currentIds, collection.id]
+                              );
+                            }}
+                          />
+                          {collection.name}
+                        </label>
+                      ))
+                    )}
+                  </fieldset>
                   <label>
                     <input
                       type="checkbox"

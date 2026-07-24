@@ -4,7 +4,8 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
   const [title, setTitle] = useState('');
   const [entryText, setEntryText] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
-  const [selectedCollectionIds, setSelectedCollectionIds] = useState([]);
+  const [collectionIds, setCollectionIds] = useState([]);
+  const [imageData, setImageData] = useState('');
 
   const [editEntryId, setEditEntryId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
@@ -27,22 +28,34 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
   }
 
   function toggleCollectionSelection(collectionId) {
-    setSelectedCollectionIds(currentIds => 
+    setCollectionIds(currentIds => 
       currentIds.includes(collectionId)
         ? currentIds.filter(id => id !== collectionId)
         : [...currentIds, collectionId]
     );
   }
 
+  function handleImageChange(e) {
+    const file = e.target.files[0] /*0 for "first selected file"*/
+    if (!file) {setImageData(''); return;}
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader(); /*FileReader tool reads content of file*/
+    reader.onload = () => { /*set image data after reading(wait for reader.readAsDataURL(file))*/
+      setImageData(reader.result);
+    }
+    reader.readAsDataURL(file) /*convert image to string */
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
     const trimmedEntry = entryText.trim();
     if (trimmedEntry === '') return;
-    onAddEntry(title, trimmedEntry, isFeatured, selectedCollectionIds);
+    onAddEntry(title, trimmedEntry, isFeatured, collectionIds, imageData);
     setTitle('');
     setEntryText('');
     setIsFeatured(false);
-    setSelectedCollectionIds([]);
+    setCollectionIds([]);
+    setImageData('')
   }
 
   return (
@@ -61,6 +74,14 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
           placeholder="Write your thoughts here"
           onChange={(e) => setEntryText(e.target.value)}
         />
+        <label>
+          Add photo
+          <input type="file" accept="image/*" onChange={handleImageChange}/>
+        </label>
+        {imageData && ( 
+          <img src={imageData} alt="Entry preview" className="entry-image-preview"/>
+        )}
+
         <fieldset>
           <legend>Add to collections</legend>
           {collections.length === 0 ? (
@@ -70,7 +91,7 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
               <label key={collection.id}>
                 <input
                   type="checkbox"
-                  checked={selectedCollectionIds.includes(collection.id)}
+                  checked={collectionIds.includes(collection.id)}
                   onChange={() => toggleCollectionSelection(collection.id)}
                 />
                 {collection.name}
@@ -95,7 +116,7 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
         <ul className="entry-list">
           {lifeLogEntries.map(entry => (
             <li key={entry.id} className="entry-card">
-              {editEntryId === entry.id ? (
+              {editEntryId === entry.id ? ( /*edit mode*/
                 <>
                   <input
                     value={editTitle}
@@ -111,7 +132,7 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
                     <legend>Add to collections</legend>
                     {collections.length === 0 ? (
                       <p>No collections yet.</p>
-                    ) : (
+                    ) : ( 
                       collections.map(collection => (
                         <label key={collection.id}>
                           <input
@@ -141,9 +162,13 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
                   <button onClick={saveEdit}>Save</button>
                   <button onClick={() => setEditEntryId(null)}>Cancel</button>
                 </>
-              ) : (
+              ) : ( /*normal mode*/
                 <>
                   {entry.title && <h3>{entry.title}</h3>} {/*render the heading only when entry.title is not empty*/}
+                  {entry.imageData && (
+                    <img src={entry.imageData} alt={entry.title || 'Life Log entry'} className="entry-image"/>
+                  )}
+
                   <p>{entry.text}</p>
                   <small>{new Date(entry.createdAt).toLocaleDateString()}</small>
                   <button onClick={() => startEditingEntry(entry)}>Edit</button>

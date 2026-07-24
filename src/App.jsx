@@ -15,6 +15,13 @@ const tabs = [
   'Custom Collections', // {id: date.now(), collectionName, entryIds: []}
 ];
 
+function removeCollectionFromItems(items, collectionId) {
+  return items.map(item => ({
+    ...item,
+    collectionIds: (item.collectionIds ?? []).filter(id => id !== collectionId),
+  }));
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('Profile');
   
@@ -48,9 +55,9 @@ export default function App() {
     localStorage.setItem('lifebud-collections', JSON.stringify(collections));
   }, [collections]);
 
-  function addLifeLogEntry(title, entryText, isFeatured, collectionIds) {
-    const newEntry = {id: Date.now(), title: title, text: entryText, createdAt: Date.now(),
-      collectionIds, isFeatured: isFeatured, };
+  function addLifeLogEntry(title, text, isFeatured, collectionIds, imageData) {
+    const newEntry = {id: Date.now(), title, text, createdAt: Date.now(),
+      collectionIds, isFeatured, imageData };
     setLifeLogEntries(currentEntries => [...currentEntries, newEntry]);
   }
   function deleteLifeLogEntry(entryId) {
@@ -98,6 +105,15 @@ export default function App() {
   }
   function deleteCollection(collectionId) {
     setCollections(collections.filter(col => col.id !== collectionId));
+    // Remove the collection from all associated items
+    setLifeLogEntries(removeCollectionFromItems(lifeLogEntries, collectionId));
+    setGoals(removeCollectionFromItems(goals, collectionId));
+    setAccomplishments(removeCollectionFromItems(accomplishments, collectionId));
+  }
+  function editCollection(collectionId, newName) {
+    setCollections(collections.map(col => 
+      col.id === collectionId ? {...col, name: newName} : col
+    ));
   }
 
   return (
@@ -155,7 +171,8 @@ export default function App() {
             goals={goals}
             accomplishments={accomplishments}
             onAddCollection={addCollection} 
-            onDeleteCollection={deleteCollection} />
+            onDeleteCollection={deleteCollection} 
+            onEditCollection={editCollection} />
         ) : null}
       </section>
     </main>
