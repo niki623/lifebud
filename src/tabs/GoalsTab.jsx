@@ -1,10 +1,11 @@
 import {useState } from 'react';
 import { goalCategoryLabels } from '../constants/categories.js';
 
-export default function GoalsTab({ goals, onAddGoal, onCompleteGoal, onDeleteGoal, onEditGoal }) {
+export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal, onDeleteGoal, onEditGoal }) {
   const [goalText, setGoalText] = useState('');
   const [category, setCategory] = useState('small');
   const [isFeatured, setIsFeatured] = useState(false);
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState([]);
 
   const [editGoalId, setEditGoalId] = useState(null);
   const [editGoalText, setEditGoalText] = useState('');
@@ -27,13 +28,23 @@ export default function GoalsTab({ goals, onAddGoal, onCompleteGoal, onDeleteGoa
     setEditIsFeatured(false);
   }
 
+  function toggleCollectionSelection(collectionId) {
+    setSelectedCollectionIds(currentIds => 
+      currentIds.includes(collectionId)
+        ? currentIds.filter(id => id !== collectionId)
+        : [...currentIds, collectionId]
+    );
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
     const trimmedGoal = goalText.trim();
     if (trimmedGoal === '') return;
-    onAddGoal(trimmedGoal, category, isFeatured);
+    onAddGoal(trimmedGoal, category, isFeatured, selectedCollectionIds);
     setGoalText('');
+    setCategory('small');
     setIsFeatured(false);
+    setSelectedCollectionIds([]);
   }
 
   return (
@@ -53,6 +64,23 @@ export default function GoalsTab({ goals, onAddGoal, onCompleteGoal, onDeleteGoa
           <option value="big">Big</option>
           <option value="milestone">Milestone</option>
         </select>
+        <fieldset>
+          <legend>Collections</legend>
+          {collections.length === 0 ? (
+            <p>No collections available.</p>
+          ) : (
+            collections.map(collection => (
+              <label key={collection.id}>
+                <input
+                  type="checkbox"
+                  checked={selectedCollectionIds.includes(collection.id)}
+                  onChange={() => toggleCollectionSelection(collection.id)}
+                />
+                {collection.name}
+              </label>
+            ))          
+          )}
+        </fieldset>
         <label>
           <input
             type="checkbox"

@@ -62,9 +62,9 @@ export default function App() {
     ));
   }
 
-  function addGoal(goalText, category, isFeatured) {
-    const newGoal = {id: Date.now(), text: goalText, category: category, createdAt: Date.now(), //id determined by time added
-      collectionIds: [], isFeatured}; 
+  function addGoal(goalText, category, isFeatured, collectionIds) {
+    const newGoal = {id: Date.now(), text: goalText, category, createdAt: Date.now(), //id determined by time added
+      collectionIds, isFeatured}; 
     setGoals([...goals, newGoal]);
   }
   function deleteGoal(goalId) {
@@ -123,16 +123,39 @@ export default function App() {
       </nav>
       
       <section className="tab-content">
-        {activeTab === 'Goals' ? (
-          <GoalsTab goals={goals} onAddGoal={addGoal} onCompleteGoal={completeGoal} onDeleteGoal={deleteGoal} onEditGoal={editGoal} />
-        ) : activeTab === 'Accomplishments' ? (
-          <AccomplishmentsTab accomplishments={accomplishments} onToggleFeatured={toggleAccomplishmentFeatured} onDeleteAccomplishment={deleteAccomplishment} />
+        {activeTab === 'Profile' ? (
+          <ProfileTab 
+            entries={lifeLogEntries} 
+            goals={goals} 
+            accomplishments={accomplishments} />
         ) : activeTab === 'Life Log' ? (
-          <LifeLogTab lifeLogEntries={lifeLogEntries} collections={collections} onAddEntry={addLifeLogEntry} onDeleteEntry={deleteLifeLogEntry} onEditEntry={editLifeLogEntry} />
-        ) : activeTab === 'Profile' ? (
-          <ProfileTab entries={lifeLogEntries} goals={goals} accomplishments={accomplishments} />
+          <LifeLogTab 
+            lifeLogEntries={lifeLogEntries} 
+            collections={collections} 
+            onAddEntry={addLifeLogEntry} 
+            onDeleteEntry={deleteLifeLogEntry} 
+            onEditEntry={editLifeLogEntry} />
+        ) : activeTab === 'Goals' ? (
+          <GoalsTab 
+            goals={goals} 
+            collections={collections}
+            onAddGoal={addGoal} 
+            onCompleteGoal={completeGoal} 
+            onDeleteGoal={deleteGoal} 
+            onEditGoal={editGoal} />
+        ) : activeTab === 'Accomplishments' ? (
+          <AccomplishmentsTab 
+            accomplishments={accomplishments} 
+            onToggleFeatured={toggleAccomplishmentFeatured} 
+            onDeleteAccomplishment={deleteAccomplishment} />
         ) : activeTab === 'Custom Collections' ? (
-          <CollectionsTab collections={collections} onAddCollection={addCollection} onDeleteCollection={deleteCollection} />
+          <CollectionsTab 
+            collections={collections} 
+            lifeLogEntries={lifeLogEntries}
+            goals={goals}
+            accomplishments={accomplishments}
+            onAddCollection={addCollection} 
+            onDeleteCollection={deleteCollection} />
         ) : null}
       </section>
     </main>

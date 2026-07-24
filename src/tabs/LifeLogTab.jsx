@@ -1,4 +1,4 @@
-import useState from 'react';
+import { useState } from 'react';
 
 export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, onDeleteEntry, onEditEntry }) {
   const [title, setTitle] = useState('');
