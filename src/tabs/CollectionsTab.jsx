@@ -75,9 +75,8 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
 
   return (
     <section>
-      <h2>Custom Collections</h2>
       <p>Organize your entries into collections.</p>
-      <form onSubmit={handleSubmit}>
+      <form className="entry-form" onSubmit={handleSubmit}>
         <input
           value={collectionName}
           placeholder="Collection name"
@@ -106,11 +105,13 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
                   <> {/*if displaying collection normally*/}
                     <h3>{collection.name}</h3>
                     <p>{itemCount} {itemCount === 1 ? 'item': 'items'}</p>
-                    <button type="button" onClick={()=>setSelectedCollectionId(collection.id)}>
-                      Open
-                    </button>
-                    <button onClick={() => startEditing(collection)}>Rename</button>
-                    <button onClick={() => onDeleteCollection(collection.id)}>Delete</button>
+                    <div className="collection-actions">
+                      <button type="button" onClick={()=>setSelectedCollectionId(collection.id)}>
+                        Open
+                      </button>
+                      <button onClick={() => startEditing(collection)}>Rename</button>
+                      <button onClick={() => onDeleteCollection(collection.id)}>Delete</button>
+                    </div>
                   </> 
                 )}
               </article>

@@ -15,7 +15,6 @@ export default function ProfileTab({ entries, goals, accomplishments }) {
 
   return (
     <section>
-      <h2>Profile</h2>
       <p>What matters most to you.</p>
 
       {featuredItems.length === 0 ? (

@@ -90,7 +90,6 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
 
   return (
     <section>
-        <h2>Life Log</h2>
         <p>Slow down and reflect.</p>
 
       <form className="entry-form" onSubmit={handleSubmit}>
@@ -225,9 +224,10 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
 
                   <p>{entry.text}</p>
                   <small>{new Date(entry.createdAt).toLocaleDateString()}</small>
-                  <button onClick={() => startEditingEntry(entry)}>Edit</button>
-                  {' '}
-                  <button onClick={() => onDeleteEntry(entry.id)}>Delete</button>
+                  <div className="entry-actions">
+                    <button onClick={() => startEditingEntry(entry)}>Edit</button>
+                    <button onClick={() => onDeleteEntry(entry.id)}>Delete</button>
+                  </div>
                 </>
               )}
             </li>

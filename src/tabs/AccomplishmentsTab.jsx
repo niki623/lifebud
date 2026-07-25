@@ -3,7 +3,6 @@ import { accomplishmentCategoryLabels } from '../constants/categories.js';
 export default function AccomplishmentsTab({ accomplishments, onToggleFeatured, onDeleteAccomplishment }) {
   return (
     <section>
-      <h2>Accomplishments</h2>
       <p>Look how far you've come.</p>
 
       {accomplishments.length === 0 ? (
@@ -12,15 +11,22 @@ export default function AccomplishmentsTab({ accomplishments, onToggleFeatured, 
         <ul className="entry-list">
           {accomplishments.map(accomplishment => (
             <li key={accomplishment.id} className="entry-card">
-              {accomplishment.text} - ({accomplishmentCategoryLabels[accomplishment.category]}) 
-              <small>(Completed:{''} {new Date(accomplishment.completedAt).toLocaleDateString()})</small>
-              <label>
-                <input type="checkbox" checked={accomplishment.isFeatured ?? false}
-                  onChange={() => onToggleFeatured(accomplishment.id)}
-                />
-                <small>Feature on Profile</small>
-              </label>
-              <button onClick={() => onDeleteAccomplishment(accomplishment.id)}>Delete</button>
+              <h3>{accomplishment.text}</h3>
+              <small>
+                {accomplishmentCategoryLabels[accomplishment.category]} · Completed{' '}
+                {new Date(accomplishment.completedAt).toLocaleDateString()}
+              </small>
+              
+              <div className="entry-actions">
+                <label>
+                  <input type="checkbox" checked={accomplishment.isFeatured ?? false}
+                    onChange={() => onToggleFeatured(accomplishment.id)}
+                  />
+                  Feature on Profile
+                </label>
+                <button onClick={() => onDeleteAccomplishment(accomplishment.id)}>Delete</button>
+              </div> 
+
             </li>
           ))}
         </ul>

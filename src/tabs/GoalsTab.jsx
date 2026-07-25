@@ -52,7 +52,6 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
 
   return (
     <section>
-      <h2>Goals</h2>
       <p>What do you want to work toward?</p>
       <form className="entry-form" onSubmit={handleSubmit}>
         <input
@@ -151,9 +150,11 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
               ) : (
                 <>
                   <p>{goal.text} - ({goalCategoryLabels[goal.category]})</p>
-                  <button onClick={() => startEditingGoal(goal)}>Edit</button> {' '}
-                  <button onClick={() => onCompleteGoal(goal.id)}>Complete</button> {' '}
-                  <button onClick={() => onDeleteGoal(goal.id)}>Delete</button> {' '}
+                  <div className="entry-actions goal-actions">
+                    <button onClick={() => startEditingGoal(goal)}>Edit</button>
+                    <button onClick={() => onCompleteGoal(goal.id)}>Complete</button>
+                    <button onClick={() => onDeleteGoal(goal.id)}>Delete</button>
+                  </div>
                 </>
               )}
             </li>
