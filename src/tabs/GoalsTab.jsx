@@ -54,7 +54,7 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
     <section>
       <h2>Goals</h2>
       <p>What do you want to work toward?</p>
-      <form onSubmit={handleSubmit}>
+      <form className="entry-form" onSubmit={handleSubmit}>
         <input
           type="text"
           value={goalText}

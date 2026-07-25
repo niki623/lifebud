@@ -90,9 +90,10 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
 
   return (
     <section>
-      <h2>Life Log</h2>
-      <p>Slow down and reflect.</p>
-      <form onSubmit={handleSubmit}>
+        <h2>Life Log</h2>
+        <p>Slow down and reflect.</p>
+
+      <form className="entry-form" onSubmit={handleSubmit}>
         <input
           type="text"
           value={title}

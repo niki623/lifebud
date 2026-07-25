@@ -62,7 +62,7 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
         {collectionItems.length === 0 ? (
           <p>No items in this collection.</p>
         ) : (
-          <div>
+          <div className="entry-list">
           {collectionItems.map(item => (
             <CollectionItem key={`${item.itemType}-${item.id}`} item={item}/>
             /* a goal and lifeLogEntry could have same ID, this ensures unique key */
@@ -124,7 +124,7 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
 
 function CollectionItem({ item }) {
   return (
-    <article className="collection-card">
+    <article className="entry-card">
       <small> 
         {/* display type of item and date */}
         {item.itemType === 'life-log' && 'Life Log'}
