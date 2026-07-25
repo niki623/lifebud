@@ -9,7 +9,7 @@ import ProfileTab from './tabs/ProfileTab.jsx';
 
 const tabs = [
   'Profile',
-  'Life Log', // {id: date.now(), title, text, isFeatured, collectionIds: []}
+  'Life Log', // {id: date.now(), title, text, isFeatured, collectionIds: [], imageData}
   'Goals', // {id: date.now(), text, category}
   'Accomplishments', // {id: date.now(), text, category, isFeatured, completedAt: date.now()}
   'Custom Collections', // {id: date.now(), collectionName, entryIds: []}
@@ -63,9 +63,11 @@ export default function App() {
   function deleteLifeLogEntry(entryId) {
     setLifeLogEntries(lifeLogEntries.filter(entry => entry.id !== entryId));
   }
-  function editLifeLogEntry(entryId, newTitle, newText, newIsFeatured, newCollectionIds) {
-    setLifeLogEntries(lifeLogEntries.map(entry => 
-      entry.id === entryId ? {...entry, title: newTitle, text: newText, isFeatured: newIsFeatured, collectionIds: newCollectionIds} : entry
+  function editLifeLogEntry(entryId, newTitle, newText, newIsFeatured, newCollectionIds, newImageData) {
+    setLifeLogEntries(lifeLogEntries=>
+      lifeLogEntries.map(entry => entry.id === entryId ? 
+        {...entry, title: newTitle, text: newText, isFeatured: newIsFeatured, 
+        collectionIds: newCollectionIds, imageData: newImageData} : entry
     ));
   }
 
@@ -84,9 +86,9 @@ export default function App() {
       setGoals(goals.filter(goal => goal.id !== goalId));
     }
   }
-  function editGoal(goalId, newText, newCategory, newIsFeatured) {
+  function editGoal(goalId, newText, newCategory, newIsFeatured, newCollectionIds) {
     setGoals(goals.map(goal => 
-      goal.id === goalId ? {...goal, text: newText, category: newCategory, isFeatured: newIsFeatured} : goal
+      goal.id === goalId ? {...goal, text: newText, category: newCategory, isFeatured: newIsFeatured, collectionIds: newCollectionIds} : goal
     ));
   }
 

@@ -28,6 +28,7 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
     setEditGoalText('');
     setEditCategory('small');
     setEditIsFeatured(false);
+    setEditCollectionIds([]);
   }
 
   function toggleCollectionSelection(collectionId) {
@@ -42,11 +43,11 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
     e.preventDefault();
     const trimmedGoal = goalText.trim();
     if (trimmedGoal === '') return;
-    onAddGoal(trimmedGoal, category, isFeatured, selectedCollectionIds);
+    onAddGoal(trimmedGoal, category, isFeatured, collectionIds);
     setGoalText('');
     setCategory('small');
     setIsFeatured(false);
-    setSelectedCollectionIds([]);
+    setCollectionIds([]);
   }
 
   return (

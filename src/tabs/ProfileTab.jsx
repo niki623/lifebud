@@ -35,6 +35,9 @@ export default function ProfileTab({ entries, goals, accomplishments }) {
               {item.itemType === 'life-log' ? (
                 <>
                   {item.title && <h3>{item.title}</h3>}
+                  {item.imageData && (
+                    <img src={item.imageData} alt={item.title || 'Life Log entry'} className="entry-image"/>
+                  )}
                   <p>{item.text}</p>
                 </>
               ) : (
