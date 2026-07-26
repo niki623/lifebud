@@ -24,7 +24,11 @@ function removeCollectionFromItems(items, collectionId) {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('Profile');
-  
+
+  const [profile, setProfile] = useState(()=>{
+    const savedProfile = localStorage.getItem('lifebud-profile');
+    return savedProfile ? JSON.parse(savedProfile) : {name:'', bio:'', imageData:''};
+  });
   const [lifeLogEntries, setLifeLogEntries] = useState(() => {
     const savedEntries = localStorage.getItem('lifebud-life-log');
     return savedEntries ? JSON.parse(savedEntries) : [];
@@ -43,6 +47,9 @@ export default function App() {
   });
   
   useEffect(() => {
+    localStorage.setItem('lifebud-profile', JSON.stringify(profile));
+  }, [profile]);
+  useEffect(() => {
     localStorage.setItem('lifebud-life-log', JSON.stringify(lifeLogEntries));
   }, [lifeLogEntries]);
   useEffect(() => {
@@ -54,6 +61,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('lifebud-collections', JSON.stringify(collections));
   }, [collections]);
+
+  function updateProfile(updatedProfile) {
+    setProfile(updatedProfile);
+  }
 
   function addLifeLogEntry(title, text, isFeatured, collectionIds, imageData) {
     const newEntry = {id: Date.now(), title, text, createdAt: Date.now(),
@@ -130,19 +141,16 @@ export default function App() {
 
       <nav className="tab-bar">
         {tabs.map(tab => (
-          <button
-            key={tab}
-            className={activeTab === tab ? 'tab active-tab' : 'tab'}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab}
-          </button>
+          <button key={tab} className={activeTab === tab ? 'tab active-tab' : 'tab'}
+            onClick={() => setActiveTab(tab)}> {tab} </button>
         ))}
       </nav>
       
       <section className="tab-content">
         {activeTab === 'Profile' ? (
           <ProfileTab 
+            profile={profile}
+            onUpdateProfile={updateProfile}
             entries={lifeLogEntries} 
             goals={goals} 
             accomplishments={accomplishments} />

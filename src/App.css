@@ -129,7 +129,8 @@ button, input, select, textarea {
   gap: 8px;
 }
 .entry-actions button,
-.collection-actions button {
+.collection-actions button,
+.edit-profile-button {
   padding: 7px 12px;
   border: 1px solid #4b5b5e;
   border-radius: 8px;
@@ -138,11 +139,22 @@ button, input, select, textarea {
   cursor: pointer;
 }
 .entry-actions button:hover,
-.collection-actions button:hover {
+.collection-actions button:hover,
+.edit-profile-button:hover {
   background-color: #435052;
 }
 .collection-actions {
   display: flex;
   gap: 8px;
   flex-wrap: nowrap;
+}
+
+/*profile stuff*/
+
+.profile-image {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 50%;
+  align-self: center;
 }
