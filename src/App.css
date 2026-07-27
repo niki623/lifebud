@@ -148,6 +148,9 @@ button, input, select, textarea {
   gap: 8px;
   flex-wrap: nowrap;
 }
+.edit-profile-button {
+  margin: 12px 0;
+}
 
 /*profile stuff*/
 

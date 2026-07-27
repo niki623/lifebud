@@ -6,6 +6,7 @@ import AccomplishmentsTab from './tabs/AccomplishmentsTab.jsx';
 import CollectionsTab from './tabs/CollectionsTab.jsx';
 import LifeLogTab from './tabs/LifeLogTab.jsx';
 import ProfileTab from './tabs/ProfileTab.jsx';
+import { loadData, saveData } from './services/storage.js';
 
 const tabs = [
   'Profile',
@@ -25,42 +26,27 @@ function removeCollectionFromItems(items, collectionId) {
 export default function App() {
   const [activeTab, setActiveTab] = useState('Profile');
 
-  const [profile, setProfile] = useState(()=>{
-    const savedProfile = localStorage.getItem('lifebud-profile');
-    return savedProfile ? JSON.parse(savedProfile) : {name:'', bio:'', imageData:''};
-  });
-  const [lifeLogEntries, setLifeLogEntries] = useState(() => {
-    const savedEntries = localStorage.getItem('lifebud-life-log');
-    return savedEntries ? JSON.parse(savedEntries) : [];
-  });
-  const [goals, setGoals] = useState(() => {
-    const savedGoals = localStorage.getItem('lifebud-goals');
-    return savedGoals ? JSON.parse(savedGoals) : [];
-  });
-  const [accomplishments, setAccomplishments] = useState(() => {
-    const savedAccomplishments = localStorage.getItem('lifebud-accomplishments');
-    return savedAccomplishments ? JSON.parse(savedAccomplishments) : [];
-  });
-  const [collections, setCollections] = useState(() => {
-    const savedCollections = localStorage.getItem('lifebud-collections');
-    return savedCollections ? JSON.parse(savedCollections) : [];
-  });
+  const [profile, setProfile] = useState(()=>
+    loadData('lifebud-profile',{name:'',bio:'',imageData:''})
+  );
+  const [lifeLogEntries, setLifeLogEntries] = useState(() => 
+    loadData('lifebud-life-log',[])
+  );
+  const [goals, setGoals] = useState(() => 
+    loadData('lifebud-goals',[])
+  );
+  const [accomplishments, setAccomplishments] = useState(() => 
+    loadData('lifebud-accomplishments',[])
+  );
+  const [collections, setCollections] = useState(() => 
+    loadData('lifebud-collections',[])
+  );
   
-  useEffect(() => {
-    localStorage.setItem('lifebud-profile', JSON.stringify(profile));
-  }, [profile]);
-  useEffect(() => {
-    localStorage.setItem('lifebud-life-log', JSON.stringify(lifeLogEntries));
-  }, [lifeLogEntries]);
-  useEffect(() => {
-    localStorage.setItem('lifebud-goals', JSON.stringify(goals));
-  }, [goals]);
-  useEffect(() => {
-    localStorage.setItem('lifebud-accomplishments', JSON.stringify(accomplishments));
-  }, [accomplishments]);
-  useEffect(() => {
-    localStorage.setItem('lifebud-collections', JSON.stringify(collections));
-  }, [collections]);
+  useEffect(() => {saveData('lifebud-profile',profile);}, [profile]);
+  useEffect(() => {saveData('lifebud-life-log', lifeLogEntries);}, [lifeLogEntries]);
+  useEffect(() => {saveData('lifebud-goals', goals);}, [goals]);
+  useEffect(() => {saveData('lifebud-accomplishments', accomplishments);}, [accomplishments]);
+  useEffect(() => {saveData('lifebud-collections', collections);}, [collections]);
 
   function updateProfile(updatedProfile) {
     setProfile(updatedProfile);
@@ -129,6 +115,61 @@ export default function App() {
     ));
   }
 
+  function exportBackup() {
+    const backup = {version: 1, exportedAt: new Date().toISOString(), profile,
+      lifeLogEntries, goals, accomplishments, collections,}; /*page data*/
+
+    const backupText = JSON.stringify(backup, null, 2); /*convert to string*/
+    const file = new Blob([backupText], { /*create temporary file*/
+      type: 'application/json',
+    });
+    const fileUrl = URL.createObjectURL(file); /*create temporary URL for file*/
+    const link = document.createElement('a'); /*create download link*/
+    link.href = fileUrl; /*make download link point to URL*/
+    link.download = `lifebud-backup-${new Date() /*give the file a name*/
+      .toISOString()
+      .slice(0, 10)}.json`;
+    link.click(); /*trigger the download*/
+    URL.revokeObjectURL(fileUrl); /*clean up temporary URL*/
+  }
+
+  function importBackup(e) {
+    const file = e.target.files[0]; /*get file*/
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const backup = JSON.parse(reader.result); /*convert to JSON object*/
+        const isValidBackup = backup.profile && Array.isArray(backup.lifeLogEntries) &&
+          Array.isArray(backup.goals) && Array.isArray(backup.accomplishments) &&
+          Array.isArray(backup.collections);
+        if (!isValidBackup) {throw new Error('Invalid Lifebud backup')}
+
+        const shouldImport = window.confirm(
+          'Importing this backup will replace your current Lifebud data. Continue?'
+        );
+        if (!shouldImport) {
+          fileInput.value = '';
+          return;
+        }
+
+        /*replace current app data with imported data*/
+        setProfile(backup.profile);
+        setLifeLogEntries(backup.lifeLogEntries);
+        setGoals(backup.goals);
+        setAccomplishments(backup.accomplishments);
+        setCollections(backup.collections);
+        alert('Backup imported successfully.');
+        
+      } catch (error) {
+        console.error(error);
+        alert('This file is not a valid Lifebud backup.');
+      }
+      fileInput.value = '';
+    };
+    reader.readAsText(file);
+  }
+
   return (
     <main>
       <header>
@@ -152,6 +193,8 @@ export default function App() {
             profile={profile}
             onUpdateProfile={updateProfile}
             entries={lifeLogEntries} 
+            onExportBackup={exportBackup}
+            onImportBackup={importBackup}
             goals={goals} 
             accomplishments={accomplishments} />
         ) : activeTab === 'Life Log' ? (

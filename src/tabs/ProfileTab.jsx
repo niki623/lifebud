@@ -2,7 +2,7 @@ import {goalCategoryLabels, accomplishmentCategoryLabels} from '../constants/cat
 import {useState} from 'react';
 import logo from '../assets/lifebud-logo.png';
 
-export default function ProfileTab({ profile, onUpdateProfile, entries, goals, accomplishments }) {
+export default function ProfileTab({ profile, onUpdateProfile, entries, onExportBackup, onImportBackup, goals, accomplishments }) {
   const [name, setName] = useState(profile.name);
   const [bio, setBio] = useState(profile.bio);
   const [imageData, setImageData] = useState(profile.imageData)
@@ -117,6 +117,14 @@ export default function ProfileTab({ profile, onUpdateProfile, entries, goals, a
           ))}
         </div>
       )}
+      <section className="backup-section">
+        <h3>Data Backup</h3>
+        <p>Download a copy of all your Lifebud data.</p>
+        <button type="button" onClick={onExportBackup}>
+          Export Backup
+        </button>
+        <input type="file" accept=".json,application/json" onChange={onImportBackup}/>
+      </section>
     </section>
   );
 }
