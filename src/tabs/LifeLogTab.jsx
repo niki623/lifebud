@@ -75,9 +75,10 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
   }
   function handleSubmit(e) {
     e.preventDefault();
+    const trimmedTitle = title.trim();
     const trimmedEntry = entryText.trim();
-    if (trimmedEntry === '') return;
-    onAddEntry(title, trimmedEntry, isFeatured, collectionIds, imageData);
+    if (trimmedTitle === '' && trimmedEntry === '' && imageData==='') return;
+    onAddEntry(trimmedTitle, trimmedEntry, isFeatured, collectionIds, imageData);
     setTitle('');
     setEntryText('');
     setIsFeatured(false);

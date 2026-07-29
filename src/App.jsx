@@ -6,7 +6,10 @@ import AccomplishmentsTab from './tabs/AccomplishmentsTab.jsx';
 import CollectionsTab from './tabs/CollectionsTab.jsx';
 import LifeLogTab from './tabs/LifeLogTab.jsx';
 import ProfileTab from './tabs/ProfileTab.jsx';
+
 import { loadData, saveData } from './services/storage.js';
+import {supabase} from './lib/supabase.js'
+import AuthForm from './components/AuthForm.jsx';
 
 const tabs = [
   'Profile',
@@ -23,11 +26,18 @@ function removeCollectionFromItems(items, collectionId) {
   }));
 }
 
+async function handleLogout() {
+  const {error} = await supabase.auth.signOut();
+  if (error) console.error('Logout failed:', error);
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('Profile');
-
+  const [session, setSession] = useState(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  
   const [profile, setProfile] = useState(()=>
-    loadData('lifebud-profile',{name:'',bio:'',imageData:''})
+    loadData('lifebud-profile',{name:'',bio:'',imageData:loadData('lifebud-profile-image','')})
   );
   const [lifeLogEntries, setLifeLogEntries] = useState(() => 
     loadData('lifebud-life-log',[])
@@ -41,15 +51,91 @@ export default function App() {
   const [collections, setCollections] = useState(() => 
     loadData('lifebud-collections',[])
   );
-  
-  useEffect(() => {saveData('lifebud-profile',profile);}, [profile]);
+
+  /* run once (for initial render, log in/out) */
+  useEffect(() => { 
+    async function loadSession() { /* only runs once when app starts */
+      try {
+        const {data} = await supabase.auth.getSession(); /* checks supabase if alr logged in */
+        setSession(data.session); /* set session (either object or null) */
+      } catch (error) {
+        console.error('Could not load Supabase session:', error);
+      } finally {
+        setIsCheckingSession(false);
+      }
+    }
+    loadSession();
+
+    const {
+      data: {subscription}, /* listener for log in/out*/
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession); /* set session for when user logs in/out */
+    });
+
+    return () => {
+      subscription.unsubscribe(); /*stop listening when app disappears*/
+    };
+  },[]);
+
+  /* Ensure user's supabase profile row exists -> update state. */
+  useEffect(() => { 
+    /* returns for log out/first render */
+    if (!session) return;
+
+    /*for log in*/
+    async function loadProfile() {
+      const {data, error} = await supabase
+        .from('profiles')
+        .upsert( 
+          {id: session.user.id},
+          {onConflict: 'id'} /* If this profile ID already exists, use that row*/
+        )
+        .select('name, bio')
+        .single()
+      if (error) {
+        console.error('Could not create profile:', error);
+        return;
+      }
+      /* Copy the database values into React state. */
+      setProfile(currentProfile => ({
+        ...currentProfile,
+        name: data.name ?? '',
+        bio: data.bio ?? '',
+      }));
+    }
+    loadProfile();
+  }, [session])  
+
+  useEffect(() => {saveData('lifebud-profile-image',profile.imageData);}, [profile.imageData]);
   useEffect(() => {saveData('lifebud-life-log', lifeLogEntries);}, [lifeLogEntries]);
   useEffect(() => {saveData('lifebud-goals', goals);}, [goals]);
   useEffect(() => {saveData('lifebud-accomplishments', accomplishments);}, [accomplishments]);
   useEffect(() => {saveData('lifebud-collections', collections);}, [collections]);
 
-  function updateProfile(updatedProfile) {
-    setProfile(updatedProfile);
+  /* update app/supabase profile */
+  async function updateProfile(updatedProfile) {
+    if (!session) return false;
+    const newName = updatedProfile.name.trim();
+    const newBio = updatedProfile.bio.trim();
+
+    const {error} = await supabase.from('profiles').update({
+      name: updatedProfile.name || null,
+      bio: updatedProfile.bio || null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', session.user.id);
+
+    if(error) {
+      console.error('Could not update profile:', error);
+      return false;
+    }
+
+    setProfile(currentProfile => ({
+      ...currentProfile,
+      name: newName,
+      bio: newBio,
+      imageData: updatedProfile.imageData,
+  }));
+    return true;
   }
 
   function addLifeLogEntry(title, text, isFeatured, collectionIds, imageData) {
@@ -134,7 +220,8 @@ export default function App() {
   }
 
   function importBackup(e) {
-    const file = e.target.files[0]; /*get file*/
+    const fileInput = e.target;
+    const file = fileInput.files[0]; /*get file*/
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
@@ -170,6 +257,9 @@ export default function App() {
     reader.readAsText(file);
   }
 
+  if (isCheckingSession) return <p>Loading...</p>
+  if(!session) return <AuthForm />
+
   return (
     <main>
       <header>
@@ -178,6 +268,7 @@ export default function App() {
           Lifebud
         </h1>
         <p>Your private space to remember, reflect, and grow.</p>
+        <button type="button" onClick={handleLogout}>Log Out</button>
       </header>
 
       <nav className="tab-bar">

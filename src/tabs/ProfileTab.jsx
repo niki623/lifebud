@@ -20,10 +20,13 @@ export default function ProfileTab({ profile, onUpdateProfile, entries, onExport
   
   ].sort((a, b) => b.timelineDate - a.timelineDate);
 
-  function handleProfileSubmit(e) {
+  async function handleProfileSubmit(e) {
     e.preventDefault();
-    onUpdateProfile({...profile, name: name.trim(), bio: bio.trim(), imageData})
-    setIsEditing(false);
+    const wasSaved = await onUpdateProfile({
+      name: name.trim(), bio: bio.trim(), imageData})
+    if (wasSaved) {
+      setIsEditing(false);
+    }
   }
   function startEditingProfile() {
     setName(profile.name ?? '');

@@ -1,15 +1,11 @@
 # Lifebud Database Schema
-
 Supabase manages login accounts separately in `auth.users`.
 
 Lifebud has:
 - 5 main data tables
 - 3 collection membership tables
 
----
-
 ## profiles
-
 Each authenticated Lifebud account has one profile.
 
 - id: uuid, primary key
@@ -21,81 +17,64 @@ Each authenticated Lifebud account has one profile.
 - created_at: timestamp with time zone, defaults to now
 - updated_at: timestamp with time zone, defaults to now
 
----
-
 ## life_log_entries
-
 Each row represents one Life Log entry belonging to one user.
 
 - id: uuid, primary key
 - user_id: uuid
   - references profiles.id
   - on delete cascade
+  - index on user_id for faster user-specific queries
 - title: text, optional
-- text: text, required
+- text: text, optional
 - image_url: text, optional
 - is_featured: boolean, defaults to false
 - created_at: timestamp with time zone, defaults to now
 - updated_at: timestamp with time zone, defaults to now
 
----
-
 ## goals
-
 Each row represents one goal belonging to one user.
 
 - id: uuid, primary key
 - user_id: uuid
   - references profiles.id
   - on delete cascade
+  - index on user_id for faster user-specific queries
 - text: text, required
-- category: text, must be:
-  - small
-  - big
-  - milestone
+- category: text, must be: small, big, or milestone
 - is_featured: boolean, defaults to false
 - created_at: timestamp with time zone, defaults to now
 - updated_at: timestamp with time zone, defaults to now
 
----
-
 ## accomplishments
-
 Each row represents one completed goal belonging to one user.
 
 - id: uuid, primary key
 - user_id: uuid
   - references profiles.id
   - on delete cascade
+  - index on user_id for faster user-specific queries
 - text: text, required
-- category: text, must be:
-  - small
-  - big
-  - milestone
+- category: text, must be: small, big, or milestone
 - is_featured: boolean, defaults to false
 - created_at: timestamp with time zone
   - represents when the original goal was created
 - completed_at: timestamp with time zone, defaults to now
 - updated_at: timestamp with time zone, defaults to now
 
----
-
 ## collections
-
 Each row represents one custom collection belonging to one user.
 
 - id: uuid, primary key
 - user_id: uuid
   - references profiles.id
   - on delete cascade
+  - index on user_id for faster user-specific queries
 - name: text, required
 - created_at: timestamp with time zone, defaults to now
 - updated_at: timestamp with time zone, defaults to now
 
----
-
 ## life_log_collection_memberships
-
 Connects Life Log entries to collections.
 
 - life_log_entry_id: uuid
@@ -109,10 +88,7 @@ Connects Life Log entries to collections.
 
 The combined primary key prevents the same entry from being added to the same collection twice.
 
----
-
 ## goal_collection_memberships
-
 Connects goals to collections.
 
 - goal_id: uuid
@@ -126,10 +102,7 @@ Connects goals to collections.
 
 The combined primary key prevents the same goal from being added to the same collection twice.
 
----
-
 ## accomplishment_collection_memberships
-
 Connects accomplishments to collections.
 
 - accomplishment_id: uuid
