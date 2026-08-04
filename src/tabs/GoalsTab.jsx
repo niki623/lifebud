@@ -20,10 +20,12 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
     setEditIsFeatured(goal.isFeatured ?? false);
     setEditCollectionIds(goal.collectionIds ?? []);
   }
-  function saveEdit(){
+  async function saveEdit(){
     const trimmedText = editGoalText.trim();
     if(trimmedText === '') return;
-    onEditGoal(editGoalId, trimmedText, editCategory, editIsFeatured, editCollectionIds);
+    const wasSaved = await onEditGoal(
+      editGoalId, trimmedText, editCategory, editIsFeatured, editCollectionIds);
+    if (!wasSaved) return;
     setEditGoalId(null);
     setEditGoalText('');
     setEditCategory('small');
@@ -39,11 +41,12 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
     );
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const trimmedGoal = goalText.trim();
     if (trimmedGoal === '') return;
-    onAddGoal(trimmedGoal, category, isFeatured, collectionIds);
+    const wasAdded = await onAddGoal(trimmedGoal, category, isFeatured, collectionIds);
+    if (!wasAdded) return;
     setGoalText('');
     setCategory('small');
     setIsFeatured(false);

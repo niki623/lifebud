@@ -1,15 +1,15 @@
 import { useState, useRef } from 'react';
 
-function readImageFile(fileInput, updateImageData) {
+function readImageFile(fileInput, updateImageData, updateImageFile) {
   const file = fileInput.files[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) return;
-  const maxSize = 2 * 1024 * 1024; // 2 MB
-  if (file.size > maxSize) { /*reject large files*/
+  if (file.size > 2 * 1024 * 1024) { /*reject large files*/
     alert('Please choose an image smaller than 2 MB.');
     fileInput.value = '';
     return;
   }
+  updateImageFile(file);
   const reader = new FileReader(); /*FileReader tool reads content of file*/
   reader.onload = () => { /*set image data after reading(wait for reader.readAsDataURL(file))*/
     updateImageData(reader.result);
@@ -24,6 +24,7 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
   const [isFeatured, setIsFeatured] = useState(false);
   const [collectionIds, setCollectionIds] = useState([]);
   const [imageData, setImageData] = useState('');
+  const [imageFile, setImageFile] = useState(null);
   const fileInputRef = useRef(null);
 
   const [editEntryId, setEditEntryId] = useState(null);
@@ -32,23 +33,33 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
   const [editIsFeatured, setEditIsFeatured] = useState(false);
   const [editCollectionIds, setEditCollectionIds] = useState([]);
   const [editImageData, setEditImageData] = useState('');
+  const [editImageFile, setEditImageFile] = useState(null);
+  const editFileInputRef = useRef(null);
+
+  const [shouldRemoveEditImage, setShouldRemoveEditImage] = useState(false)
 
   function handleImageChange(e) {
-    readImageFile(e.target, setImageData)
+    readImageFile(e.target, setImageData, setImageFile)
   }
   function handleEditImageChange(e) {
-    readImageFile(e.target, setEditImageData)
+    readImageFile(e.target, setEditImageData, setEditImageFile);
+    setShouldRemoveEditImage(false);
   }
 
   function removeSelectedImage() {
     setImageData('');
+    setImageFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   }
-
   function removeEditImage() {
     setEditImageData('');
+    setEditImageFile(null);
+    setShouldRemoveEditImage(true);
+    if (editFileInputRef.current) {
+      editFileInputRef.current.value = '';
+    }
   }
 
   function startEditingEntry(entry) {
@@ -58,11 +69,17 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
     setEditIsFeatured(entry.isFeatured ?? false);
     setEditCollectionIds(entry.collectionIds ?? []);
     setEditImageData(entry.imageData ?? '');
+    setEditImageFile(null);
+    setShouldRemoveEditImage(false);
   }
-  function saveEdit(){
+  async function saveEdit(){
+    const trimmedTitle = editTitle.trim();
     const trimmedText = editText.trim();
-    if(trimmedText === '') return;
-    onEditEntry(editEntryId, editTitle, trimmedText, editIsFeatured, editCollectionIds, editImageData);
+    if (trimmedTitle==='' && trimmedText==='' && editImageData === '') return;
+    const wasSaved = await onEditEntry(
+      editEntryId, editTitle, trimmedText, editIsFeatured, editCollectionIds, 
+      editImageData, editImageFile, shouldRemoveEditImage);
+    if (!wasSaved) return;
     setEditEntryId(null);
   }
 
@@ -73,17 +90,20 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
         : [...currentIds, collectionId]
     );
   }
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const trimmedTitle = title.trim();
     const trimmedEntry = entryText.trim();
     if (trimmedTitle === '' && trimmedEntry === '' && imageData==='') return;
-    onAddEntry(trimmedTitle, trimmedEntry, isFeatured, collectionIds, imageData);
+    const wasSaved = await onAddEntry(
+      trimmedTitle, trimmedEntry, isFeatured, collectionIds, imageData, imageFile);
+    if (!wasSaved) return;
     setTitle('');
     setEntryText('');
     setIsFeatured(false);
     setCollectionIds([]);
     setImageData('');
+    setImageFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -168,7 +188,7 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
 
                   <label>
                     Change photo
-                    <input type="file" accept="image/*" onChange={handleEditImageChange}/>
+                    <input type="file" accept="image/*" onChange={handleEditImageChange} ref={editFileInputRef}/>
                   </label>
                   {editImageData && (
                     <>

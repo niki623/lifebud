@@ -17,10 +17,11 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
     setEditCollectionId(collection.id);
     setEditCollectionName(collection.name);
   }
-  function saveEdit() {
+  async function saveEdit() {
     const trimmedName = editCollectionName.trim();
     if (trimmedName === '') return;
-    onEditCollection(editCollectionId, trimmedName);
+    const wasSaved = await onEditCollection(editCollectionId, trimmedName);
+    if (!wasSaved)
     setEditCollectionId(null);
     setEditCollectionName('');
   }
@@ -43,11 +44,12 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
     ].sort((a, b) => b.timelineDate - a.timelineDate);
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const trimmedName = collectionName.trim();
     if (trimmedName === '') return;
-    onAddCollection(trimmedName);
+    const wasAdded = await onAddCollection(trimmedName);
+    if (!wasAdded) return;
     setCollectionName('');
   }
 

@@ -11,12 +11,13 @@ import { loadData, saveData } from './services/storage.js';
 import {supabase} from './lib/supabase.js'
 import AuthForm from './components/AuthForm.jsx';
 
+//imagePath created and used in App.jsx only, imageData exists in state but not supabase
 const tabs = [
-  'Profile',
-  'Life Log', // {id: date.now(), title, text, isFeatured, collectionIds: [], imageData}
-  'Goals', // {id: date.now(), text, category}
-  'Accomplishments', // {id: date.now(), text, category, isFeatured, completedAt: date.now()}
-  'Custom Collections', // {id: date.now(), collectionName, entryIds: []}
+  'Profile', // {name, bio, imagePath, imageData}
+  'Life Log', // {id, title, text, isFeatured, createdAt, collectionIds, imagePath, imageData}
+  'Goals', // {id, text, category, isFeatured, createdAt, collectionIds}
+  'Accomplishments', // {id, text, category, isFeatured, createdAt, completedAt, collectionIds}
+  'Custom Collections', // {id, name, createdAt}
 ];
 
 function removeCollectionFromItems(items, collectionId) {
@@ -36,9 +37,8 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   
-  const [profile, setProfile] = useState(()=>
-    loadData('lifebud-profile',{name:'',bio:'',imageData:loadData('lifebud-profile-image','')})
-  );
+  const [profile, setProfile] = useState({
+    name:'',bio:'',imagePath: '', imageData:''});
   const [lifeLogEntries, setLifeLogEntries] = useState(() => 
     loadData('lifebud-life-log',[])
   );
@@ -87,10 +87,10 @@ export default function App() {
       const {data, error} = await supabase
         .from('profiles')
         .upsert( 
-          {id: session.user.id},
+          {id: session.user.id}, /*choose the profile row you’re trying to create/use. */
           {onConflict: 'id'} /* If this profile ID already exists, use that row*/
         )
-        .select('name, bio')
+        .select('name, bio, image_path')
         .single()
       if (error) {
         console.error('Could not create profile:', error);
@@ -101,104 +101,677 @@ export default function App() {
         ...currentProfile,
         name: data.name ?? '',
         bio: data.bio ?? '',
+        imagePath: data.image_path ?? ''
       }));
     }
     loadProfile();
   }, [session])  
 
-  useEffect(() => {saveData('lifebud-profile-image',profile.imageData);}, [profile.imageData]);
-  useEffect(() => {saveData('lifebud-life-log', lifeLogEntries);}, [lifeLogEntries]);
-  useEffect(() => {saveData('lifebud-goals', goals);}, [goals]);
-  useEffect(() => {saveData('lifebud-accomplishments', accomplishments);}, [accomplishments]);
-  useEffect(() => {saveData('lifebud-collections', collections);}, [collections]);
+  /* turn "imagePath" into a displayable signed URL */
+  /* URL is temporary, imagePath remains unchanged */
+  useEffect(()=>{
+    if (!profile.imagePath) return;
+    async function loadProfileImage() {
+      const {data, error} = await supabase.storage
+        .from('lifebud-images')
+        .createSignedUrl(profile.imagePath, 60*60); //URL lasts one hour
+      if (error) {
+        console.error('Could not load profile image', error);
+        return;
+      }
+      setProfile(currentProfile=>({
+        ...currentProfile, imageData: data.signedUrl
+      }));
+    }
+    loadProfileImage();
+  }, [profile.imagePath])
+  
+  /* load user's goals */
+  useEffect(()=> {
+    if (!session) return;
+    async function loadGoals() {
+      const {data, error} = await supabase
+        .from('goals')
+        .select(`id, text, category, is_featured, created_at,
+          goal_collection_memberships(collection_id)`)
+        .eq('user_id', session.user.id)
+        .order('created_at', {ascending: false})
+      if (error) {
+        console.error('Could not load goals:', error);
+        return;
+      }
+      setGoals(data.map(goal=>({
+        id: goal.id, text: goal.text, category: goal.category, isFeatured: goal.is_featured, 
+        createdAt: new Date(goal.created_at).getTime(), 
+        collectionIds: goal.goal_collection_memberships.map(membership=>membership.collection_id),
+      })));
+    }
+    loadGoals();
+  }, [session]) 
+
+  /* load user's accomplishments */
+  useEffect(()=>{
+    if (!session) return;
+    
+    async function loadAccomplishments() {
+      const {data, error} = await supabase
+        .from('accomplishments')
+        .select(`id, text, category, is_featured, created_at, completed_at,
+          accomplishment_collection_memberships(collection_id)`)
+        .eq('user_id', session.user.id)
+        .order('completed_at', {ascending: false});
+      if (error) {
+        console.error('Could not load accomplishments:', error);
+        return;
+      }
+
+      setAccomplishments(
+        data.map(accomplishment => ({
+          id: accomplishment.id, text: accomplishment.text, category: accomplishment.category,
+          isFeatured: accomplishment.is_featured, createdAt: new Date(accomplishment.created_at).getTime(),
+          completedAt: new Date(accomplishment.completed_at).getTime(), 
+          collectionIds: accomplishment.accomplishment_collection_memberships.map(
+            membership=>membership.collection_id),
+        }))
+      );
+    }
+  loadAccomplishments();
+}, [session]);
+  
+  /* load user's collections */
+  useEffect(()=> {
+    if (!session) return;
+    async function loadCollections() {
+      const {data, error} = await supabase
+        .from('collections')
+        .select('id, name, created_at')
+        .eq('user_id', session.user.id)
+        .order('created_at', {ascending: false})
+      if (error) {
+        console.error('Could not load collections:', error);
+        return;
+      }
+      setCollections(data.map(collection=>({
+        id:collection.id, name:collection.name, 
+        createdAt: new Date(collection.created_at).getTime()})))
+    }
+    loadCollections();
+  }, [session])
+  
+  /* load user's life log entries */
+  useEffect(() => {
+    if (!session) return;
+
+    async function loadLifeLogEntries() {
+      //load all entries
+      const { data: entriesData, error: entriesError } =
+        await supabase
+          .from('life_log_entries')
+          .select(`id, title, text, image_path, is_featured, created_at, 
+            life_log_collection_memberships (collection_id)` //converts into array of {collection_id: collection_name}
+          )
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
+      if (entriesError) {
+        console.error('Could not load Life Log entries:',entriesError);
+        return;
+      }
+
+      //create URLs
+      const formattedEntries = await Promise.all( //waits until all URLs are ready
+        entriesData.map(async(entry)=>{
+          let imageData = '';
+          if (entry.image_path) {
+            const {data:signedUrlData, error: signedUrlError} =
+              await supabase.storage
+                .from('lifebud-images')
+                .createSignedUrl(entry.image_path, 60*60) 
+            if (signedUrlError) {
+              console.error('Could not create signed URL:', signedUrlError)
+            } else {
+              imageData = signedUrlData.signedUrl
+            }
+          }
+          return {id: entry.id, title: entry.title ?? '', text: entry.text ?? '', imagePath: entry.image_path ?? '',
+            imageData, isFeatured: entry.is_featured, createdAt: new Date(entry.created_at).getTime(),
+            collectionIds: entry.life_log_collection_memberships.map(membership=>membership.collection_id)
+          }
+        })
+      )
+
+      setLifeLogEntries(formattedEntries);
+    }
+
+    loadLifeLogEntries();
+  }, [session]);
 
   /* update app/supabase profile */
   async function updateProfile(updatedProfile) {
     if (!session) return false;
     const newName = updatedProfile.name.trim();
     const newBio = updatedProfile.bio.trim();
+    let newImagePath = profile.imagePath;
+    let uploadedPath = null; //newly uploaded file to remove in case of failure
+    //if keeping old photo, do nothing for image stuff. else either remove old photo or add new one
 
-    const {error} = await supabase.from('profiles').update({
-      name: updatedProfile.name || null,
-      bio: updatedProfile.bio || null,
-      updated_at: new Date().toISOString(),
+    //fix newImagePath
+    if (updatedProfile.shouldRemoveImage) { //remove old photo only
+      newImagePath='';
+    } else if (updatedProfile.imageFile) { //add new photo 
+      const extension = updatedProfile.imageFile.name.split('.').pop() || 'jpg';
+      const imagePath = `${session.user.id}/profile/${crypto.randomUUID()}.${extension}`
+      const {data: uploadData, error: uploadError} = 
+        await supabase.storage
+          .from('lifebud-images')
+          .upload(imagePath, updatedProfile.imageFile, {contentType: updatedProfile.imageFile.type});
+      if (uploadError) {
+        console.error('Could not upload profile image:', uploadError);
+        return false;
+      }
+      newImagePath = uploadData.path;
+      uploadedPath = uploadData.path;
+    }
+
+    //update supabase profile
+    const {error} = await supabase 
+      .from('profiles')
+      .update({
+        name: updatedProfile.name || null,
+        bio: updatedProfile.bio || null,
+        image_path: newImagePath || null,
+        updated_at: new Date().toISOString(),
     }).eq('id', session.user.id);
-
-    if(error) {
+    if (error) {
       console.error('Could not update profile:', error);
+      //undo image upload if saving the profile failed
+      if (uploadedPath) {
+        await supabase.storage
+          .from('lifebud-images')
+          .remove([uploadedPath]);
+      }
       return false;
+    }
+
+    //delete old picture?
+    if (profile.imagePath && ( //if old image exists AND
+      updatedProfile.shouldRemoveImage || //user removed photo OR
+      (uploadedPath && profile.imagePath !== uploadedPath) // user replaced photo
+    )) {
+      const {error: removeOldImageError} = 
+        await supabase.storage
+          .from('lifebud-images')
+          .remove([profile.imagePath]);
+      if (removeOldImageError) {
+        console.error('Could not delete old profile image:', removeOldImageError)
+      }
     }
 
     setProfile(currentProfile => ({
       ...currentProfile,
       name: newName,
       bio: newBio,
-      imageData: updatedProfile.imageData,
+      imagePath: newImagePath,
+      imageData: updatedProfile.shouldRemoveImage
+        ? '' //no image
+        : updatedProfile.imageData, //replaced image
   }));
     return true;
   }
 
-  function addLifeLogEntry(title, text, isFeatured, collectionIds, imageData) {
-    const newEntry = {id: Date.now(), title, text, createdAt: Date.now(),
-      collectionIds, isFeatured, imageData };
-    setLifeLogEntries(currentEntries => [...currentEntries, newEntry]);
-  }
-  function deleteLifeLogEntry(entryId) {
-    setLifeLogEntries(lifeLogEntries.filter(entry => entry.id !== entryId));
-  }
-  function editLifeLogEntry(entryId, newTitle, newText, newIsFeatured, newCollectionIds, newImageData) {
-    setLifeLogEntries(lifeLogEntries=>
-      lifeLogEntries.map(entry => entry.id === entryId ? 
-        {...entry, title: newTitle, text: newText, isFeatured: newIsFeatured, 
-        collectionIds: newCollectionIds, imageData: newImageData} : entry
-    ));
-  }
+  async function addLifeLogEntry(title, text, isFeatured, collectionIds, imageData, imageFile) {
+    if (!session) return false;
+    const entryId = crypto.randomUUID();
+    let imagePath = '';
+    let signedImageUrl = imageData;
 
-  function addGoal(goalText, category, isFeatured, collectionIds) {
-    const newGoal = {id: Date.now(), text: goalText, category, createdAt: Date.now(), //id determined by time added
-      collectionIds, isFeatured}; 
-    setGoals([...goals, newGoal]);
-  }
-  function deleteGoal(goalId) {
-    setGoals(goals.filter(goal => goal.id !== goalId));
-  }
-  function completeGoal(goalId) {
-    const completedGoal = goals.find(goal => goal.id === goalId);
-    if (completedGoal) {
-      setAccomplishments([...accomplishments, {...completedGoal, isFeatured: false, completedAt: Date.now()}]);
-      setGoals(goals.filter(goal => goal.id !== goalId));
+    if (imageFile) {
+      //upload image
+      const extension = imageFile.name.split('.').pop() || 'jpg';
+      const storagePath = `${session.user.id}/life-log/${entryId}/${crypto.randomUUID()}.${extension}`;
+      const {data: uploadData, error: uploadError} = await supabase.storage
+        .from('lifebud-images')
+        .upload(storagePath, imageFile, {contentType: imageFile.type,});
+      if (uploadError) {
+        console.error('Could not upload Life Log image:',uploadError);
+        return false;
+      }
+      imagePath = uploadData.path;
+    
+      //get signed url
+      const {data: signedUrlData, error: signedUrlError} = 
+        await supabase.storage
+          .from('lifebud-images')
+          .createSignedUrl(imagePath, 60*60);
+      if (signedUrlError) {
+        console.error('Could not create signed URL:', signedUrlError);
+        return false;
+      }
+      signedImageUrl = signedUrlData.signedUrl;
     }
-  }
-  function editGoal(goalId, newText, newCategory, newIsFeatured, newCollectionIds) {
-    setGoals(goals.map(goal => 
-      goal.id === goalId ? {...goal, text: newText, category: newCategory, isFeatured: newIsFeatured, collectionIds: newCollectionIds} : goal
-    ));
+
+    //add entry to supabase
+    const {data, error} = await supabase
+      .from('life_log_entries')
+      .insert({
+        id: entryId,
+        user_id: session.user.id, 
+        title:title.trim() || null,
+        text:text.trim() || null,
+        image_path: imagePath || null,
+        is_featured: isFeatured,
+      })
+      .select('id, title, text, is_featured, created_at')
+      .single();
+    if (error) {
+      console.error('Could not add Life Log entry:', error);
+      //remove image if can't add life log entry
+      if (imagePath) {
+        await supabase.storage
+          .from('lifebud-images')
+          .remove([imagePath]);
+      }
+      return false;
+    }
+
+    //add to life_log_collection_memberships
+    if (collectionIds.length > 0) {
+      const membershipRows = collectionIds.map(collectionId => ({
+        life_log_entry_id: data.id,
+        collection_id: collectionId,
+      }));
+      const {error: membershipError} = await supabase 
+        .from('life_log_collection_memberships')
+        .insert(membershipRows);
+
+      if (membershipError) {
+        console.error('Could not save Life Log collections:', membershipError);
+        //if error, remove the entry AND picture
+        await supabase
+          .from('life_log_entries')
+          .delete()
+          .eq('id', data.id);
+        if (imagePath) { 
+          await supabase.storage
+            .from('lifebud-images')
+            .remove([imagePath]);
+        }
+        return false;
+      }
+    }
+
+    const newEntry = {id: data.id, title: data.title ?? '', text: data.text ?? '',
+      isFeatured: data.is_featured, createdAt: new Date(data.created_at).getTime(),
+      collectionIds, imagePath, imageData: signedImageUrl,
+    };
+
+    setLifeLogEntries(currentEntries => [
+      newEntry,
+      ...currentEntries,
+    ]);
+    return true;
   }
 
-  function deleteAccomplishment(accomplishmentId) {
-    setAccomplishments(accomplishments.filter(acc => acc.id !== accomplishmentId));
+  async function editLifeLogEntry(entryId, newTitle, newText, newIsFeatured, 
+    newCollectionIds, newImageData, newImageFile, shouldRemoveImage) {
+    if (!session) return false;
+    
+    const currentEntry = lifeLogEntries.find(entry=>entry.id===entryId);
+    if (!currentEntry) return false;
+    let newImagePath = currentEntry.imagePath;
+    let uploadedPath = null;
+    
+    //update newImagePath 
+    if (shouldRemoveImage) { //remove image ONLY
+      newImagePath = '';
+    } else if (newImageFile) { //replace image
+      const extension = newImageFile.name.split('.').pop() || 'jpg';
+      const storagePath = `${session.user.id}/life-log/${entryId}/${crypto.randomUUID()}.${extension}`;
+      const { data: uploadData, error: uploadError } =
+        await supabase.storage
+          .from('lifebud-images')
+          .upload(storagePath, newImageFile, {
+            contentType: newImageFile.type,
+          });
+      if (uploadError) {
+        console.error('Could not upload Life Log image:', uploadError);
+        return false;
+      }
+      newImagePath = uploadData.path;
+      uploadedPath = uploadData.path;
+    }
+
+    //update supabase
+    const { data, error } = await supabase
+      .from('life_log_entries')
+      .update({
+        title: newTitle.trim() || null,
+        text: newText.trim() || null,
+        image_path: newImagePath || null,
+        is_featured: newIsFeatured,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', entryId)
+      .select('id, title, text, is_featured, created_at')
+      .single();
+    if (error) {
+      console.error('Could not edit Life Log entry:', error);
+      if (uploadedPath) {
+        await supabase.storage
+          .from('lifebud-images')
+          .remove([uploadedPath]);
+      }
+      return false;
+    }
+    
+    //delete old picture?
+    if (currentEntry.imagePath && ( //if old image exists AND
+      shouldRemoveImage || //user removed photo OR
+      (uploadedPath && currentEntry.imagePath !== uploadedPath) // user replaced photo
+    )) {
+      const {error: removeOldImageError} = await supabase.storage
+        .from('lifebud-images')
+        .remove([currentEntry.imagePath]);
+      if (removeOldImageError) {
+        console.error('Could not delete old Life Log image:', removeOldImageError)
+      }
+    }
+
+    //delete all membership rows for this entry
+    const {error: deleteMembershipsError} = await supabase
+      .from('life_log_collection_memberships')
+      .delete()
+      .eq('life_log_entry_id', entryId);
+    if (deleteMembershipsError) {
+      console.error('Could not remove old Life Log collections:', deleteMembershipsError);
+      return false;
+    }
+    //add new set of membership rows
+    if (newCollectionIds.length>0) {
+      const newMembershipRows = newCollectionIds.map(collectionId=>({
+        life_log_entry_id: entryId,
+        collection_id: collectionId,
+      }));
+      const {error: insertMembershipsError} = await supabase
+        .from('life_log_collection_memberships')
+        .insert(newMembershipRows);
+      if (insertMembershipsError) {
+        console.error('Could not save new Life Log collections:', insertMembershipsError);
+        return false;
+      }
+    }
+
+    setLifeLogEntries(currentEntries => currentEntries.map(entry => entry.id === entryId
+      ? {...entry, title: data.title ?? '',text: data.text ?? '', isFeatured: data.is_featured, 
+        collectionIds: newCollectionIds, imagePath: newImagePath, 
+        imageData: shouldRemoveImage? '' : newImageData}
+      : entry
+    )
+  );
+
+  return true;
   }
-  function toggleAccomplishmentFeatured(accomplishmentId) {
-    setAccomplishments(accomplishments.map(acc => 
-      acc.id === accomplishmentId ? {...acc, isFeatured: !acc.isFeatured} : acc
-    ));
+  async function deleteLifeLogEntry(entryId) {
+    const entryToDelete = lifeLogEntries.find(entry=>entry.id===entryId);
+    if (!entryToDelete) return false;
+
+    // if image exists, delete
+    if (entryToDelete.imagePath) {
+      const {error: removeImageError} = await supabase.storage
+        .from('lifebud-images')
+        .remove([entryToDelete.imagePath]);
+      if (removeImageError) {
+        console.error('Could not delete Life Log image:', removeImageError);
+        return false;
+      }
+    }
+    //delete database row
+    if (!session) return false;
+    const { error } = await supabase
+      .from('life_log_entries')
+      .delete()
+      .eq('id', entryId);
+    if (error) {
+      console.error('Could not delete Life Log entry:', error);
+      return false;
+    }
+    //update state
+    setLifeLogEntries(currentEntries =>
+      currentEntries.filter(entry => entry.id !== entryId));
+  return true;
   }
 
-  function addCollection(collectionName) {
-    const newCollection = {id: Date.now(), name: collectionName, entryIds: []};
-    setCollections([...collections, newCollection]);
+  async function addGoal(goalText, category, isFeatured, collectionIds) {
+    if (!session) return false;
+    const {data, error} = await supabase
+      .from('goals')
+      .insert({user_id: session.user.id, text:goalText, category, is_featured:isFeatured})
+      .select('id,text,category,is_featured,created_at') 
+      .single();
+    if (error) {
+      console.error('Could not add goal:', error);
+      return false;
+    }
+
+    //add to goal_collection_memberships
+    if (collectionIds.length > 0) {
+      const membershipRows = collectionIds.map(collectionId => ({
+        goal_id: data.id,
+        collection_id: collectionId,
+      }));
+      const {error: membershipError} = await supabase 
+        .from('goal_collection_memberships')
+        .insert(membershipRows);
+
+      if (membershipError) {
+        console.error('Could not save goal collections:', membershipError);
+        //if error, remove the entry so it isn't only partially saved
+        await supabase
+          .from('goals')
+          .delete()
+          .eq('id', data.id);
+        return false;
+      }
+    }
+
+    const newGoal = {id:data.id, text:data.text, category:data.category, isFeatured:data.is_featured,
+      createdAt: new Date(data.created_at).getTime(), collectionIds,
+    }
+    setGoals(currentGoals => [newGoal, ...currentGoals]);
+    return true;
   }
-  function deleteCollection(collectionId) {
-    setCollections(collections.filter(col => col.id !== collectionId));
-    // Remove the collection from all associated items
-    setLifeLogEntries(removeCollectionFromItems(lifeLogEntries, collectionId));
-    setGoals(removeCollectionFromItems(goals, collectionId));
-    setAccomplishments(removeCollectionFromItems(accomplishments, collectionId));
+  async function completeGoal(goalId) {
+    if (!session) return false;
+
+    const completedGoal = goals.find(goal=>goal.id===goalId);
+    if (!completedGoal) return false;
+    const {data, error: insertError} = await supabase
+      .from('accomplishments')
+      .insert({user_id: session.user.id, text: completedGoal.text, category: completedGoal.category,
+        is_featured: false, created_at: new Date(completedGoal.createdAt).toISOString()})
+      .select('id, text, category, is_featured, created_at, completed_at')
+      .single();
+    if (insertError) {
+      console.error('Could not complete goal:', insertError);
+      return false;
+    }
+    const {error: deleteError} = await supabase
+      .from('goals')
+      .delete()
+      .eq('id', goalId);
+    if (deleteError) {
+      console.error('Could not remove complete goal:', deleteError);
+      return false;
+    }
+    const newAccomplishment = {id:data.id, text:data.text, category: data.category, 
+      isFeatured: data.is_featured, createdAt: new Date(data.created_at).getTime(), 
+      completedAt: new Date(data.completed_at).getTime(), collectionIds:completedGoal.collectionIds ?? [],
+    };
+    setAccomplishments(current=>[newAccomplishment, ...current]);
+
+    //transfer goal collections to accomplishment collections
+    const completedGoalCollectionIds = completedGoal.collectionIds ?? [];
+    if (completedGoalCollectionIds.length > 0) {
+      const membershipRows = completedGoalCollectionIds.map(
+        collectionId => ({accomplishment_id: data.id, collection_id: collectionId,})
+      )
+      const { error: membershipError } = await supabase
+        .from('accomplishment_collection_memberships')
+        .insert(membershipRows);
+      if (membershipError) {
+        console.error('Could not transfer goal collections:',membershipError);
+        await supabase
+          .from('accomplishments')
+          .delete()
+          .eq('id', data.id);
+        return false;
+      }
+    }
+    setGoals(current=>current.filter(goal=>goal.id!==goalId));
+    return true;
   }
-  function editCollection(collectionId, newName) {
-    setCollections(collections.map(col => 
-      col.id === collectionId ? {...col, name: newName} : col
-    ));
+  async function editGoal(goalId, newText, newCategory, newIsFeatured, newCollectionIds) {
+    if (!session) return false;
+    const {data, error} = await supabase
+      .from('goals')
+      .update({text:newText, category: newCategory, is_featured: newIsFeatured, updated_at: new Date().toISOString(),})
+      .eq('id', goalId)
+      .select('id, text, category, is_featured, created_at')
+      .single()
+    if (error) {
+      console.error('Could not edit goal:',error);
+      return false;
+    }
+
+    //delete all collections for this entry
+    const {error: deleteMembershipsError} = await supabase
+      .from('goal_collection_memberships')
+      .delete()
+      .eq('goal_id', goalId);
+    if (deleteMembershipsError) {
+      console.error('Could not remove old goal collections:', deleteMembershipsError);
+      return false;
+    }
+    //add new set of collections
+    if (newCollectionIds.length>0) {
+      const newMembershipRows = newCollectionIds.map(collectionId=>({
+        goal_id: goalId,
+        collection_id: collectionId,
+      }))
+      const {error: insertMembershipsError} = await supabase
+        .from('goal_collection_memberships')
+        .insert(newMembershipRows)
+      if (insertMembershipsError) {
+        console.error('Could not save new goal collections:', insertMembershipsError);
+        return false;
+      } 
+    }
+
+    setGoals(currentGoals => currentGoals.map(goal=> goal.id === goalId
+      ? {...goal, text:data.text, category: data.category, isFeatured: data.is_featured, 
+        collectionIds: newCollectionIds,}
+      : goal
+    ))
+    return true;
+  }
+  async function deleteGoal(goalId) {
+    if (!session) return false;
+    const {error} = await supabase
+      .from('goals')
+      .delete()
+      .eq('id', goalId)
+    if (error) {
+      console.error('Could not delete goal:', error);
+      return false;
+    } 
+    setGoals(currentGoals => currentGoals.filter(goal=>goal.id!==goalId));
+    return true;
+  }
+
+  async function toggleAccomplishmentFeatured(accomplishmentId) {
+    if (!session) return;
+    const accomplishment = accomplishments.find(acc=>acc.id===accomplishmentId);
+    if (!accomplishment) return;
+    const {data, error} = await supabase
+      .from('accomplishments')
+      .update({is_featured: !accomplishment.isFeatured, updated_at: new Date().toISOString()})
+      .eq('id', accomplishmentId)
+      .select('is_featured')
+      .single();
+    if (error) {
+      console.error('Could not update accomplishment:', error);
+      return;
+    }
+    setAccomplishments(currentAccomplishments =>
+      currentAccomplishments.map(acc => acc.id === accomplishmentId
+      ? { ...acc, isFeatured: data.is_featured }: acc));
+  }
+  
+  async function deleteAccomplishment(accomplishmentId) {
+    if (!session) return;
+    const {error} = await supabase
+      .from('accomplishments')
+      .delete()
+      .eq('id', accomplishmentId)
+    if (error) {
+      console.error('Could not delete acccomplishment:', error);
+      return;
+    }
+    setAccomplishments(current => current.filter(acc=>acc.id!==accomplishmentId))
+  }
+
+  async function addCollection(collectionName) {
+    if (!session) return false;
+    const {data, error} = await supabase
+      .from('collections')
+      .insert({user_id: session.user.id, name:collectionName})
+      .select('id, name, created_at')
+      .single();
+    if (error) {
+      console.error('Could not add collection:', error);
+      return false;
+    }
+    const newCollection = {id: data.id, name: data.name, createdAt: new Date(data.created_at).getTime()};
+  
+    setCollections(currentCollections => [newCollection,...currentCollections,]);
+    return true;
+  }
+  async function editCollection(collectionId, newName) {
+    if (!session) return false;
+
+    const { data, error } = await supabase
+      .from('collections')
+      .update({name: newName, updated_at: new Date().toISOString(),})
+      .eq('id', collectionId)
+      .select('id, name, created_at')
+      .single();
+    if (error) {
+      console.error('Could not edit collection:', error);
+      return false;
+    }
+
+    setCollections(currentCollections => currentCollections.map(
+      collection =>collection.id === collectionId
+          ? {...collection, name: data.name}: collection))
+  }
+  async function deleteCollection(collectionId) {
+    if (!session) return;
+    const {error} = await supabase
+      .from('collections')
+      .delete()
+      .eq('id', collectionId)
+    if (error) {
+      console.error('Could not delete collection:', error);
+      return;
+    }
+    setCollections(currentCollections =>currentCollections.filter(
+      collection => collection.id !== collectionId));
+    setLifeLogEntries(currentEntries =>
+      removeCollectionFromItems(currentEntries, collectionId));
+    setGoals(currentGoals =>
+      removeCollectionFromItems(currentGoals, collectionId));
+    setAccomplishments(currentAccomplishments =>
+      removeCollectionFromItems(currentAccomplishments,collectionId));
+    return;
   }
 
   function exportBackup() {

@@ -1,12 +1,15 @@
 import {goalCategoryLabels, accomplishmentCategoryLabels} from '../constants/categories.js';
 import {useState} from 'react';
-import logo from '../assets/lifebud-logo.png';
+import defaultProfile from '../assets/default-profile.png';
 
 export default function ProfileTab({ profile, onUpdateProfile, entries, onExportBackup, onImportBackup, goals, accomplishments }) {
   const [name, setName] = useState(profile.name);
   const [bio, setBio] = useState(profile.bio);
-  const [imageData, setImageData] = useState(profile.imageData)
-  const [isEditing, setIsEditing] = useState(false);
+  const [imageFile, setImageFile] = useState(null); //actual file for supabase
+  const [imageData, setImageData] = useState(profile.imageData) //image preview in browser (string)
+  const [isEditing, setIsEditing] = useState(false); 
+  //True: no picture, false: replace or use old picture
+  const [shouldRemoveImage, setShouldRemoveImage] = useState(false);  
 
   const featuredItems = [
     ...entries.filter(entry => entry.isFeatured)
@@ -23,7 +26,7 @@ export default function ProfileTab({ profile, onUpdateProfile, entries, onExport
   async function handleProfileSubmit(e) {
     e.preventDefault();
     const wasSaved = await onUpdateProfile({
-      name: name.trim(), bio: bio.trim(), imageData})
+      name: name.trim(), bio: bio.trim(), imageData, imageFile, shouldRemoveImage})
     if (wasSaved) {
       setIsEditing(false);
     }
@@ -31,14 +34,18 @@ export default function ProfileTab({ profile, onUpdateProfile, entries, onExport
   function startEditingProfile() {
     setName(profile.name ?? '');
     setBio(profile.bio ?? '');
+    setImageFile(null);
     setImageData(profile.imageData ?? '');
     setIsEditing(true);
+    setShouldRemoveImage(false);
   }
   function cancelEditingProfile() {
     setName(profile.name ?? '');
-    setBio(profile.bio ?? '');
+    setBio(profile.bio ?? '');    
+    setImageFile(null);
     setImageData(profile.imageData ?? '');
     setIsEditing(false);
+    setShouldRemoveImage(false);
   }
 
   function readImageFile(e) {
@@ -49,6 +56,9 @@ export default function ProfileTab({ profile, onUpdateProfile, entries, onExport
       alert('Please choose an image smaller than 2 MB.');
       return;
     }
+    setImageFile(file);
+    setShouldRemoveImage(false);
+
     const reader = new FileReader(); 
     reader.onload = () => { 
       setImageData(reader.result);
@@ -60,17 +70,23 @@ export default function ProfileTab({ profile, onUpdateProfile, entries, onExport
     <section>
       {isEditing ? (
         <form className="entry-form" onSubmit={handleProfileSubmit}>
-          <img src={imageData||logo} alt="Profile preview" className="profile-image"/>
-          <button type="button" onClick={()=>setImageData('')}>Remove Photo</button>
+          <img src={imageData||defaultProfile} alt="Profile preview" className="profile-image"/>
+          <button type="button" onClick={()=>{setImageData(''); setImageFile(null); setShouldRemoveImage(true)}}>
+            Remove Photo
+          </button>
           <input type="file" accept="image/*" onChange={readImageFile}/>
           <input type="text" value={name} placeholder="Your Name" onChange={(e)=>setName(e.target.value)} />
           <textarea value={bio} placeholder="Write a short bio" onChange={(e)=>setBio(e.target.value)} />
-          <button type="submit">Save Profile</button>
-          <button type="button" onClick={cancelEditingProfile}> Cancel </button>
+          <button type="submit">
+            Save Profile
+          </button>
+          <button type="button" onClick={cancelEditingProfile}> 
+            Cancel 
+          </button>
         </form>
       ) : (
         <div className="profile-header">
-          <img src={profile.imageData || logo} alt={profile.imageData ? 'Profile' : 'Default Lifebud profile'}
+          <img src={profile.imageData || defaultProfile} alt={profile.imageData ? 'Profile' : 'Default Lifebud profile'}
             className="profile-image"/>     
         <div>
           <h3>{profile.name || 'Your name'}</h3>
