@@ -1,16 +1,106 @@
-# React + Vite
+# 🌱 LifeBud
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+LifeBud is a personal life management app designed to help users reflect, organize, and preserve meaningful moments. Instead of focusing solely on productivity, LifeBud combines journaling, goal tracking, accomplishments, and collections into one space that encourages long-term personal growth.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### 📝 Life Log
 
-## React Compiler
+* Create journal entries with optional titles and photos.
+* Edit entries directly in place.
+* Delete entries.
+* Organize entries into collections.
+* Feature selected entries on your profile.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🎯 Goals
 
-## Expanding the ESLint configuration
+* Create and manage personal goals.
+* Mark goals as completed.
+* Edit goals without leaving the page.
+* Organize goals into collections.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 🏆 Accomplishments
+
+* Record achievements and milestones.
+* Edit and delete accomplishments.
+* Organize accomplishments into collections.
+
+### 📚 Collections
+
+* Group related entries, goals, and accomplishments.
+* Rename or delete collections.
+* View all items within a collection.
+
+### 👤 Profile
+
+* Customize your profile information.
+* Upload a profile picture.
+* Showcase featured journal entries.
+
+## Technologies Used
+
+* React
+* JavaScript (ES6+)
+* Firebase Authentication
+* Cloud Firestore
+* Firebase Storage
+* CSS
+
+## Screenshots
+
+*Add screenshots here.*
+
+## Installation
+
+1. Clone the repository.
+
+```bash
+git clone https://github.com/yourusername/lifebud.git
+```
+
+2. Install dependencies.
+
+```bash
+npm install
+```
+
+3. Create a Firebase project and configure:
+
+* Authentication
+* Cloud Firestore
+* Storage
+
+4. Create a `.env` file and add your Firebase configuration.
+
+```env
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+```
+
+5. Start the development server.
+
+```bash
+npm run dev
+```
+
+## Future Improvements
+
+* Search across all content
+* Timeline view
+* Memory reminders ("On This Day")
+* Rich text editor
+* Export and backup options
+* Improved profile dashboard
+* Mobile responsiveness
+
+## Motivation
+
+LifeBud began as a personal project to explore React and Firebase while designing an application centered around reflection rather than social media. Throughout development, I focused on creating an editing experience that feels natural by allowing users to edit entries directly within the post instead of switching to separate forms.
+
+## License
+
+This project is for educational and portfolio purposes.
