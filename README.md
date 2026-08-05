@@ -1,6 +1,6 @@
 # LifeBud
 
-LifeBud is a personal life management app designed to help users reflect, organize, and preserve meaningful moments. Instead of focusing solely on productivity, LifeBud combines journaling, goal tracking, accomplishments, and collections into one space that encourages long-term personal growth.
+LifeBud is a personal life management app designed to help users reflect, organize, and preserve meaningful moments. Instead of focusing solely on productivity, LifeBud combines journaling, goal tracking, accomplishments, and collections into one space that encourages gratitude and long-term personal growth.
 
 ## Features
 
