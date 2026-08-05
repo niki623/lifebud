@@ -794,8 +794,9 @@ export default function App() {
     }
 
     setCollections(currentCollections => currentCollections.map(
-      collection =>collection.id === collectionId
-          ? {...collection, name: data.name}: collection))
+      collection => collection.id === collectionId
+          ? {...collection, name: data.name} : collection));
+    return true;
   }
   async function deleteCollection(collectionId) {
     if (!session) return;

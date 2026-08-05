@@ -125,13 +125,13 @@ export default function AccomplishmentsTab({ accomplishments, collections, onTog
               <div className="entry-actions">
                 {isEditing ? (
                   <>
-                    <button onClick={saveEdit}>Save</button>
-                    <button onClick={cancelEdit}>Cancel</button>
+                    <button type="button" onClick={saveEdit}>Save</button>
+                    <button type="button" onClick={cancelEdit}>Cancel</button>
                   </>
                 ) : (
                   <>
-                    <button onClick={() => startEditing(accomplishment)}>Edit</button>
-                    <button onClick={() => onDeleteAccomplishment(accomplishment.id)}>Delete</button>
+                    <button type="button" onClick={() => startEditing(accomplishment)}>Edit</button>
+                    <button type="button" onClick={() => onDeleteAccomplishment(accomplishment.id)}>Delete</button>
                   </>
                 )}
               </div>

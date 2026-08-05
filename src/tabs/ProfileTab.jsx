@@ -1,5 +1,5 @@
 import {goalCategoryLabels, accomplishmentCategoryLabels} from '../constants/categories.js';
-import {useState, useRef} from 'react';
+import {useState} from 'react';
 import defaultProfile from '../assets/default-profile.png';
 
 export default function ProfileTab({ profile, onUpdateProfile, entries, onExportBackup, onImportBackup, goals, accomplishments }) {
@@ -8,7 +8,6 @@ export default function ProfileTab({ profile, onUpdateProfile, entries, onExport
   const [imageFile, setImageFile] = useState(null); //actual file for supabase
   const [imageData, setImageData] = useState(profile.imageData) //image preview in browser (string)
   const [isEditing, setIsEditing] = useState(false); 
-  const profileFileInputRef = useRef(null);
   //True: no picture, false: replace or use old picture
   const [shouldRemoveImage, setShouldRemoveImage] = useState(false);  
 
@@ -71,32 +70,25 @@ export default function ProfileTab({ profile, onUpdateProfile, entries, onExport
     setImageData('');
     setImageFile(null);
     setShouldRemoveImage(true);
-    if (profileFileInputRef.current) {
-      profileFileInputRef.current.value = '';
-    }
   }
 
   return (
     <section>
+      
       {isEditing ? (
         <form className="entry-form" onSubmit={handleProfileSubmit}>
           <img src={imageData||defaultProfile} alt="Profile preview" className="profile-image"/>
-          <label>
-            Change photo
-            <input ref={profileFileInputRef} className="file-input" type="file" accept="image/*" onChange={readImageFile}/>
-          </label>
-          {imageData && (
-            <button type="button" onClick={removeProfilePhoto}>
-              Remove Photo
-            </button>
-          )}
+          <button type="button" onClick={()=>{setImageData(''); setImageFile(null); setShouldRemoveImage(true)}}>
+            Remove Photo
+          </button>
+          <input type="file" accept="image/*" onChange={readImageFile}/>
           <input type="text" value={name} placeholder="Your Name" onChange={(e)=>setName(e.target.value)} />
           <textarea value={bio} placeholder="Write a short bio" onChange={(e)=>setBio(e.target.value)} />
           <button type="submit">
             Save Profile
           </button>
-          <button type="button" onClick={cancelEditingProfile}>
-            Cancel
+          <button type="button" onClick={cancelEditingProfile}> 
+            Cancel 
           </button>
         </form>
       ) : (
@@ -113,8 +105,7 @@ export default function ProfileTab({ profile, onUpdateProfile, entries, onExport
         </div>
       )}
 
-      {/*----------*/}
-
+      {/*Entries*/}
       {featuredItems.length === 0 ? (
         <p>Nothing featured yet.</p>
       ) : (
@@ -151,6 +142,8 @@ export default function ProfileTab({ profile, onUpdateProfile, entries, onExport
           ))}
         </div>
       )}
+
+      {/*Data Backup*/}
       <section className="backup-section">
         <h3>Data Backup</h3>
         <p>Download a copy of all your Lifebud data.</p>

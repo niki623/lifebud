@@ -103,7 +103,7 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
                 onClick={() => { //clicking opens the collection 
                   if (!isEditing) setSelectedCollectionId(collection.id);
                 }}
-                onKeyDown={(e) => { //allow access through keyboard
+                onKeyDown={(e) => { //allow access through keyboard "enter" or "space"
                   if (!isEditing && (e.key === 'Enter' || e.key === ' ')) {
                     e.preventDefault();
                     setSelectedCollectionId(collection.id);
@@ -116,15 +116,15 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
                       value={editCollectionName}
                       onChange={(e) => setEditCollectionName(e.target.value)}
                     />
-                    <button onClick={saveEdit}>Save</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); saveEdit(); }}>Save</button>
                   </>
                 ) : (
                   <> {/*if displaying collection normally*/}
                     <h3>{collection.name}</h3>
                     <p>{itemCount} {itemCount === 1 ? 'item': 'items'}</p>
                     <div className="collection-actions" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => startEditing(collection)}>Rename</button>
-                      <button onClick={() => onDeleteCollection(collection.id)}>Delete</button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); startEditing(collection); }}>Rename</button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onDeleteCollection(collection.id); }}>Delete</button>
                     </div>
                   </> 
                 )}

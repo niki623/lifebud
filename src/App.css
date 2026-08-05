@@ -201,7 +201,6 @@ textarea {
   justify-content: space-between;
   flex-wrap: wrap;
 }
-
 .goal-actions .goal-edit-delete {
   display: flex;
   gap: 12px;

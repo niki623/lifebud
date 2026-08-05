@@ -137,7 +137,6 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
             </button>
           </>
         )}
-
         <fieldset>
           <legend>Add to collections</legend>
           {collections.length === 0 ? (
@@ -165,30 +164,29 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
         </label>
         <button type="submit">Add Entry</button>
       </form>
-
+      
+      {/*Display entries*/}
       {lifeLogEntries.length === 0 ? (
         <p>No entries yet.</p>
       ) : (
         <ul className="entry-list">
           {lifeLogEntries.map(entry => {
             const isEditing = editEntryId === entry.id;
-            const featured = isEditing ? editIsFeatured : entry.isFeatured;
 
             return (
               <li key={entry.id} className="entry-card">
-                
-              {/*Title*/}
-              <h3>
-                {isEditing ? (
-                  <input
-                    value={editTitle}
-                    placeholder="Entry Title (optional)"
-                    onChange={(e) => setEditTitle(e.target.value)}
-                  />
-                ) : (
-                  entry.title
-                )}
-              </h3>
+                {/*Title*/}
+                <h3>
+                  {isEditing ? (
+                    <input
+                      value={editTitle}
+                      placeholder="Entry Title (optional)"
+                      onChange={(e) => setEditTitle(e.target.value)}
+                    />
+                  ) : (
+                    entry.title
+                  )}
+                </h3>
               
               {/*Text*/}
               {isEditing ? (
@@ -212,36 +210,32 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
 
               {isEditing && (
                 <>
-                  {/* Collections */}
-                  {isEditing && (
-                    <div className="collection-row">
-                      <p className="edit-label">Add to collections:</p>
+                  <div className="collection-row">
+                    <p className="edit-label">Add to collections:</p>
 
-                      <div className="entry-collections">
-                        {collections.map(collection => (
-                          <span
-                            key={collection.id}
-                            className={
-                              editCollectionIds.includes(collection.id)
-                                ? "collection-chip selected"
-                                : "collection-chip"
-                            }
-                            onClick={() => {
-                              setEditCollectionIds(current =>
-                                current.includes(collection.id)
-                                  ? current.filter(id => id !== collection.id)
-                                  : [...current, collection.id]
-                              );
-                            }}
-                          >
-                            {collection.name}
-                          </span>
-                        ))}
-                      </div>
+                    <div className="entry-collections">
+                      {collections.map(collection => (
+                        <span
+                          key={collection.id}
+                          className={
+                            editCollectionIds.includes(collection.id)
+                              ? "collection-chip selected"
+                              : "collection-chip"
+                          }
+                          onClick={() => {
+                            setEditCollectionIds(current =>
+                              current.includes(collection.id)
+                                ? current.filter(id => id !== collection.id)
+                                : [...current, collection.id]
+                            );
+                          }}
+                        >
+                          {collection.name}
+                        </span>
+                      ))}
                     </div>
-                  )}
+                  </div>
 
-                  {/*Featured*/}              
                   <label>
                     <input
                       type="checkbox"
@@ -250,8 +244,6 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
                     />
                     Feature on Profile
                   </label>
-
-                  
                 </>
               )}
 
@@ -260,16 +252,16 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
               <div className="entry-actions">
                 {isEditing ? (
                   <>
-                    <button onClick={saveEdit}>Save</button>
-                    <button onClick={() => setEditEntryId(null)}>Cancel</button>
+                    <button type="button" onClick={saveEdit}>Save</button>
+                    <button type="button" onClick={() => setEditEntryId(null)}>Cancel</button>
                   </>
                 ) : (
                   <>
-                    <button onClick={() => startEditingEntry(entry)}>
+                    <button type="button" onClick={() => startEditingEntry(entry)}>
                       Edit
                     </button>
 
-                    <button onClick={() => onDeleteEntry(entry.id)}>
+                    <button type="button" onClick={() => onDeleteEntry(entry.id)}>
                       Delete
                     </button>
                   </>
