@@ -21,7 +21,7 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
     const trimmedName = editCollectionName.trim();
     if (trimmedName === '') return;
     const wasSaved = await onEditCollection(editCollectionId, trimmedName);
-    if (!wasSaved)
+    if (!wasSaved) return;
     setEditCollectionId(null);
     setEditCollectionName('');
   }
@@ -93,9 +93,24 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
         <div className="collection-grid">
           {collections.map(collection => {
             const itemCount = getCollectionItems(collection.id).length;
+            const isEditing = editCollectionId === collection.id;
             return (
-              <article key={collection.id} className="collection-card">
-                {editCollectionId === collection.id ? ( 
+              <article
+                key={collection.id}
+                className="collection-card"
+                role={isEditing ? undefined : 'button'} //treat element like a button
+                tabIndex={isEditing ? undefined : 0} //include element when user presses "tab"
+                onClick={() => { //clicking opens the collection 
+                  if (!isEditing) setSelectedCollectionId(collection.id);
+                }}
+                onKeyDown={(e) => { //allow access through keyboard
+                  if (!isEditing && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    setSelectedCollectionId(collection.id);
+                  }
+                }}
+              >
+                {isEditing ? ( 
                   <> {/*if editing collection name*/}
                     <input
                       value={editCollectionName}
@@ -107,10 +122,7 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
                   <> {/*if displaying collection normally*/}
                     <h3>{collection.name}</h3>
                     <p>{itemCount} {itemCount === 1 ? 'item': 'items'}</p>
-                    <div className="collection-actions">
-                      <button type="button" onClick={()=>setSelectedCollectionId(collection.id)}>
-                        Open
-                      </button>
+                    <div className="collection-actions" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => startEditing(collection)}>Rename</button>
                       <button onClick={() => onDeleteCollection(collection.id)}>Delete</button>
                     </div>

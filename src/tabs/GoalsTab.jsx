@@ -101,67 +101,98 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
         <p>No goals yet.</p>
       ) : (
         <ul className="entry-list">
-          {goals.map(goal => (
-            <li key={goal.id} className="entry-card">
-              {editGoalId === goal.id ? (
-                <>
-                  <input
-                    value={editGoalText}
-                    placeholder="Edit goal"
-                    onChange={(e) => setEditGoalText(e.target.value)}
-                  />
-                  <select 
-                    value={editCategory} onChange={(e) => setEditCategory(e.target.value)}>
+          {goals.map(goal => {
+            const isEditing = editGoalId === goal.id;
+
+            return (
+              <li key={goal.id} className="entry-card">
+                {/*Text*/}
+                <h3>
+                  {isEditing ? (
+                    <input
+                      value={editGoalText}
+                      placeholder="Edit goal"
+                      onChange={(e) => setEditGoalText(e.target.value)}
+                    />
+                  ) : (
+                    goal.text
+                  )}
+                </h3>
+                
+                {/*Category*/}
+                {isEditing ? (
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                  >
                     <option value="small">Small</option>
                     <option value="big">Big</option>
                     <option value="milestone">Milestone</option>
                   </select>
-                  <fieldset>
-                    <legend>Add to collections</legend>
-                    {collections.length === 0 ? (
-                      <p>No collections yet.</p>
-                    ) : (
-                      collections.map(collection => (
-                        <label key={collection.id}>
-                          <input
-                            type="checkbox"
-                            checked={editCollectionIds.includes(collection.id)}
-                            onChange={() => {
-                              setEditCollectionIds(currentIds => 
+                ) : (
+                  <p>{goalCategoryLabels[goal.category]}</p>
+                )}
+
+                {/*Collections*/}
+                {isEditing && (
+                  <>
+                    <div className="collection-row">
+                      <p className="edit-label">Add to collections:</p>
+                      <div className="entry-collections">
+                        {collections.map(collection => (
+                          <span
+                            key={collection.id}
+                            className={
+                              editCollectionIds.includes(collection.id)
+                                ? 'collection-chip selected'
+                                : 'collection-chip'
+                            }
+                            onClick={() => {
+                              setEditCollectionIds(currentIds =>
                                 currentIds.includes(collection.id)
                                   ? currentIds.filter(id => id !== collection.id)
                                   : [...currentIds, collection.id]
                               );
                             }}
-                          />
-                          {collection.name}
-                        </label>
-                      ))
-                    )}
-                  </fieldset>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={editIsFeatured}
-                      onChange={(e) => setEditIsFeatured(e.target.checked)}
-                    />
-                    Feature on Profile
-                  </label>
-                  <button onClick={saveEdit}>Save</button>
-                  <button onClick={() => setEditGoalId(null)}>Cancel</button>
-                </>
-              ) : (
-                <>
-                  <p>{goal.text} - ({goalCategoryLabels[goal.category]})</p>
-                  <div className="entry-actions goal-actions">
-                    <button onClick={() => startEditingGoal(goal)}>Edit</button>
-                    <button onClick={() => onCompleteGoal(goal.id)}>Complete</button>
-                    <button onClick={() => onDeleteGoal(goal.id)}>Delete</button>
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
+                          >
+                            {collection.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={editIsFeatured}
+                        onChange={(e) => setEditIsFeatured(e.target.checked)}
+                      />
+                      Feature on Profile
+                    </label>
+                  </>
+                )}
+
+                <div className="entry-actions goal-actions">
+                  {isEditing ? (
+                    <>
+                      <button onClick={saveEdit}>Save</button>
+                      <button onClick={() => setEditGoalId(null)}>Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="complete-button" onClick={() => onCompleteGoal(goal.id)}>
+                        Complete
+                      </button>
+                      <div className="goal-edit-delete">
+                        <button onClick={() => startEditingGoal(goal)}>Edit</button>
+                        <button onClick={() => onDeleteGoal(goal.id)}>Delete</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

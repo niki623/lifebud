@@ -673,6 +673,50 @@ export default function App() {
     ))
     return true;
   }
+  async function editAccomplishment(accomplishmentId, newText, newCategory, newIsFeatured, newCollectionIds) {
+    if (!session) return false;
+    const {data, error} = await supabase
+      .from('accomplishments')
+      .update({text: newText, category: newCategory, is_featured: newIsFeatured, updated_at: new Date().toISOString()})
+      .eq('id', accomplishmentId)
+      .select('id, text, category, is_featured, completed_at')
+      .single();
+    if (error) {
+      console.error('Could not edit accomplishment:', error);
+      return false;
+    }
+
+    const {error: deleteMembershipsError} = await supabase
+      .from('accomplishment_collection_memberships')
+      .delete()
+      .eq('accomplishment_id', accomplishmentId);
+    if (deleteMembershipsError) {
+      console.error('Could not remove old accomplishment collections:', deleteMembershipsError);
+      return false;
+    }
+
+    if (newCollectionIds.length > 0) {
+      const newMembershipRows = newCollectionIds.map(collectionId => ({
+        accomplishment_id: accomplishmentId,
+        collection_id: collectionId,
+      }));
+      const {error: insertMembershipsError} = await supabase
+        .from('accomplishment_collection_memberships')
+        .insert(newMembershipRows);
+      if (insertMembershipsError) {
+        console.error('Could not save new accomplishment collections:', insertMembershipsError);
+        return false;
+      }
+    }
+
+    setAccomplishments(currentAccomplishments => currentAccomplishments.map(acc =>
+      acc.id === accomplishmentId
+        ? {...acc, text: data.text, category: data.category, isFeatured: data.is_featured,
+          collectionIds: newCollectionIds,}
+        : acc
+    ));
+    return true;
+  }
   async function deleteGoal(goalId) {
     if (!session) return false;
     const {error} = await supabase
@@ -713,7 +757,7 @@ export default function App() {
       .delete()
       .eq('id', accomplishmentId)
     if (error) {
-      console.error('Could not delete acccomplishment:', error);
+      console.error('Could not delete accomplishment:', error);
       return;
     }
     setAccomplishments(current => current.filter(acc=>acc.id!==accomplishmentId))
@@ -879,8 +923,10 @@ export default function App() {
         ) : activeTab === 'Accomplishments' ? (
           <AccomplishmentsTab 
             accomplishments={accomplishments} 
+            collections={collections}
             onToggleFeatured={toggleAccomplishmentFeatured} 
-            onDeleteAccomplishment={deleteAccomplishment} />
+            onDeleteAccomplishment={deleteAccomplishment}
+            onEditAccomplishment={editAccomplishment} />
         ) : activeTab === 'Custom Collections' ? (
           <CollectionsTab 
             collections={collections} 

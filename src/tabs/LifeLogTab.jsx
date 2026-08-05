@@ -117,7 +117,7 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
         <input
           type="text"
           value={title}
-          placeholder="Entry Title (optional)"
+          placeholder="Entry Title"
           onChange={(e) => setTitle(e.target.value)}
         />
         <textarea
@@ -127,7 +127,7 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
         />
         <label>
           Add photo
-          <input type="file" accept="image/*" onChange={handleImageChange} ref={fileInputRef}/>
+          <input className="file-input" type="file" accept="image/*" onChange={handleImageChange} ref={fileInputRef}/>
         </label>
         {imageData && (
           <>
@@ -170,59 +170,78 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
         <p>No entries yet.</p>
       ) : (
         <ul className="entry-list">
-          {lifeLogEntries.map(entry => (
-            <li key={entry.id} className="entry-card">
-              {editEntryId === entry.id ? ( 
-                /* EDIT mode*/
-                <>
+          {lifeLogEntries.map(entry => {
+            const isEditing = editEntryId === entry.id;
+            const featured = isEditing ? editIsFeatured : entry.isFeatured;
+
+            return (
+              <li key={entry.id} className="entry-card">
+                
+              {/*Title*/}
+              <h3>
+                {isEditing ? (
                   <input
                     value={editTitle}
                     placeholder="Entry Title (optional)"
                     onChange={(e) => setEditTitle(e.target.value)}
                   />
-                  <textarea
-                    value={editText}
-                    placeholder="Write your thoughts here"
-                    onChange={(e) => setEditText(e.target.value)}
-                  />
+                ) : (
+                  entry.title
+                )}
+              </h3>
+              
+              {/*Text*/}
+              {isEditing ? (
+                <textarea
+                  value={editText}
+                  placeholder="Write your thoughts here"
+                  onChange={(e) => setEditText(e.target.value)}
+                />
+              ) : (
+                <p>{entry.text}</p>
+              )}
 
-                  <label>
-                    Change photo
-                    <input type="file" accept="image/*" onChange={handleEditImageChange} ref={editFileInputRef}/>
-                  </label>
-                  {editImageData && (
-                    <>
-                      <img src={editImageData} alt="Entry preview" className="entry-image"/>
-                      <button type="button" onClick={removeEditImage}>
-                        Remove Photo
-                      </button>
-                    </>
-                  )}
+              {/*Image*/}
+              {(isEditing? editImageData : entry.imageData) && (
+                <img 
+                  src={isEditing ? editImageData : entry.imageData} 
+                  alt={entry.title || 'Life Log entry'} 
+                  className="entry-image"
+                />
+              )}
 
-                  <fieldset>
-                    <legend>Add to collections</legend>
-                    {collections.length === 0 ? (
-                      <p>No collections yet.</p>
-                    ) : ( 
-                      collections.map(collection => (
-                        <label key={collection.id}>
-                          <input
-                            type="checkbox"
-                            checked={editCollectionIds.includes(collection.id)}
-                            onChange={() => {
-                              setEditCollectionIds(currentIds => 
-                                currentIds.includes(collection.id)
-                                  ? currentIds.filter(id => id !== collection.id)
-                                  : [...currentIds, collection.id]
+              {isEditing && (
+                <>
+                  {/* Collections */}
+                  {isEditing && (
+                    <div className="collection-row">
+                      <p className="edit-label">Add to collections:</p>
+
+                      <div className="entry-collections">
+                        {collections.map(collection => (
+                          <span
+                            key={collection.id}
+                            className={
+                              editCollectionIds.includes(collection.id)
+                                ? "collection-chip selected"
+                                : "collection-chip"
+                            }
+                            onClick={() => {
+                              setEditCollectionIds(current =>
+                                current.includes(collection.id)
+                                  ? current.filter(id => id !== collection.id)
+                                  : [...current, collection.id]
                               );
                             }}
-                          />
-                          {collection.name}
-                        </label>
-                      ))
-                    )}
-                  </fieldset>
+                          >
+                            {collection.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
+                  {/*Featured*/}              
                   <label>
                     <input
                       type="checkbox"
@@ -232,27 +251,34 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
                     Feature on Profile
                   </label>
 
-                  <button onClick={saveEdit}>Save</button>
-                  <button onClick={() => setEditEntryId(null)}>Cancel</button>
-                </>
-              ) : ( 
-                /*NORMAL mode*/
-                <>
-                  {entry.title && <h3>{entry.title}</h3>} {/*render the heading only when entry.title is not empty*/}
-                  {entry.imageData && (
-                    <img src={entry.imageData} alt={entry.title || 'Life Log entry'} className="entry-image"/>
-                  )}
-
-                  <p>{entry.text}</p>
-                  <small>{new Date(entry.createdAt).toLocaleDateString()}</small>
-                  <div className="entry-actions">
-                    <button onClick={() => startEditingEntry(entry)}>Edit</button>
-                    <button onClick={() => onDeleteEntry(entry.id)}>Delete</button>
-                  </div>
+                  
                 </>
               )}
+
+              <small>{new Date(entry.createdAt).toLocaleDateString()}</small>
+
+              <div className="entry-actions">
+                {isEditing ? (
+                  <>
+                    <button onClick={saveEdit}>Save</button>
+                    <button onClick={() => setEditEntryId(null)}>Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => startEditingEntry(entry)}>
+                      Edit
+                    </button>
+
+                    <button onClick={() => onDeleteEntry(entry.id)}>
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
+              
             </li>
-          ))}
+          );
+          })}
         </ul>
       )}
     </section>
