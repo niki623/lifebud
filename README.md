@@ -8,7 +8,7 @@ LifeBud is a personal life management app designed to help users reflect, organi
 
 * Customize your profile information.
 * Upload a profile picture.
-* Showcase featured journal entries.
+* Showcase featured journal entries, goals, and accomplishments.
 
 ### Life Log
 
@@ -21,7 +21,7 @@ LifeBud is a personal life management app designed to help users reflect, organi
 ### Goals
 
 * Create and manage personal goals.
-* Mark goals as completed.
+* Mark goals as completed, automatically migrating them to the accomplishments tab.
 * Edit goals without leaving the page.
 * Organize goals into collections.
 
