@@ -178,7 +178,7 @@ textarea {
   border-radius: 12px;
 }
 
-..entry-image-preview {
+.entry-image-preview {
   width: 100%;
   max-height: 280px;
   object-fit: cover;
