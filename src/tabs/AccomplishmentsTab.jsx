@@ -61,8 +61,8 @@ export default function AccomplishmentsTab({ accomplishments, collections, onTog
           {accomplishments.map(accomplishment => {
             const isEditing = editAccomplishmentId === accomplishment.id;
             return (
-              <li key={accomplishment.id} className="entry-card">
-                <h3>
+              <li key={accomplishment.id} className="entry-card accomplishment-card">
+                <h3 className={!isEditing ? 'accomplishment-title' : ''}>
                   {isEditing ? (
                     <input
                       value={editText}
@@ -72,7 +72,9 @@ export default function AccomplishmentsTab({ accomplishments, collections, onTog
                   ) : (
                     accomplishment.text
                   )}
+                  {!isEditing && <span className="completed-check">✓</span>}
                 </h3>
+
               {isEditing ? (
                 <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)}>
                   <option value="small">Small</option>
