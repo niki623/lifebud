@@ -56,13 +56,13 @@ LifeBud is a personal life management app designed to help users reflect, organi
 
 ![Life Logs](README-assets/lifelog.png)
 
-### Editing
-
-![Editing](README-assets/edit-entry.png)
-
 ### Goals
 
-![Goals](README-assets/goals.png)
+![Editing](README-assets/goals.png)
+
+### Accomplishments
+
+![Accomplishments](README-assets/accomplishments.png)
 
 ### Collections
 
