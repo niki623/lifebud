@@ -273,3 +273,24 @@ textarea {
   padding-top: 20px;
   border-top: 1px solid #3a484b;
 }
+.loading-overlay {
+  position: fixed; /*Even if you scroll, it stays put.*/
+  inset: 0; /*cover entire screen*/
+  background: rgba(8, 13, 16, 0.88); /*dark background with 88% opacity*/
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000; /*draw on top of everything else*/
+}
+.loading-spinner {
+  width: 56px;
+  height: 56px;
+  border: 6px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #8acdcb;
+  border-radius: 50%; /*make it a circle*/
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin { /*defining the animation*/
+  to { transform: rotate(360deg); }
+}

@@ -53,7 +53,7 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
     setCollectionName('');
   }
 
-  if (selectedCollection) { /*edit mode */
+  if (selectedCollection) { /* show item collections */
     const collectionItems = getCollectionItems(selectedCollection.id)
     return (
       <section>
@@ -75,7 +75,7 @@ export default function CollectionsTab({collections, lifeLogEntries, goals, acco
     )
   }
 
-  return (
+  return ( /* show all collections */
     <section>
       <p>Organize your entries into collections.</p>
       <form className="entry-form" onSubmit={handleSubmit}>

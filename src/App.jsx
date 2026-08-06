@@ -51,6 +51,16 @@ export default function App() {
   const [collections, setCollections] = useState(() => 
     loadData('lifebud-collections',[])
   );
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function withLoading(action) {
+    setIsLoading(true);
+    try {
+      return await action();
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   /* run once (for initial render, log in/out) */
   useEffect(() => { 
@@ -248,10 +258,11 @@ export default function App() {
   /* update app/supabase profile */
   async function updateProfile(updatedProfile) {
     if (!session) return false;
-    const newName = updatedProfile.name.trim();
-    const newBio = updatedProfile.bio.trim();
-    let newImagePath = profile.imagePath;
-    let uploadedPath = null; //newly uploaded file to remove in case of failure
+    return withLoading(async () => {
+      const newName = updatedProfile.name.trim();
+      const newBio = updatedProfile.bio.trim();
+      let newImagePath = profile.imagePath;
+      let uploadedPath = null; //newly uploaded file to remove in case of failure
     //if keeping old photo, do nothing for image stuff. else either remove old photo or add new one
 
     //fix newImagePath
@@ -314,13 +325,15 @@ export default function App() {
       imageData: updatedProfile.shouldRemoveImage
         ? '' //no image
         : updatedProfile.imageData, //replaced image
-  }));
-    return true;
+    }));
+      return true;
+    });
   }
 
   async function addLifeLogEntry(title, text, isFeatured, collectionIds, imageData, imageFile) {
     if (!session) return false;
-    const entryId = crypto.randomUUID();
+    return withLoading(async () => {
+      const entryId = crypto.randomUUID();
     let imagePath = '';
     let signedImageUrl = imageData;
 
@@ -409,106 +422,108 @@ export default function App() {
       ...currentEntries,
     ]);
     return true;
+    });
   }
 
   async function editLifeLogEntry(entryId, newTitle, newText, newIsFeatured, 
     newCollectionIds, newImageData, newImageFile, shouldRemoveImage) {
     if (!session) return false;
-    
-    const currentEntry = lifeLogEntries.find(entry=>entry.id===entryId);
-    if (!currentEntry) return false;
-    let newImagePath = currentEntry.imagePath;
-    let uploadedPath = null;
-    
-    //update newImagePath 
-    if (shouldRemoveImage) { //remove image ONLY
-      newImagePath = '';
-    } else if (newImageFile) { //replace image
-      const extension = newImageFile.name.split('.').pop() || 'jpg';
-      const storagePath = `${session.user.id}/life-log/${entryId}/${crypto.randomUUID()}.${extension}`;
-      const { data: uploadData, error: uploadError } =
-        await supabase.storage
-          .from('lifebud-images')
-          .upload(storagePath, newImageFile, {
-            contentType: newImageFile.type,
-          });
-      if (uploadError) {
-        console.error('Could not upload Life Log image:', uploadError);
+    return withLoading(async () => {
+      const currentEntry = lifeLogEntries.find(entry=>entry.id===entryId);
+      if (!currentEntry) return false;
+      let newImagePath = currentEntry.imagePath;
+      let uploadedPath = null;
+      
+      //update newImagePath 
+      if (shouldRemoveImage) { //remove image ONLY
+        newImagePath = '';
+      } else if (newImageFile) { //replace image
+        const extension = newImageFile.name.split('.').pop() || 'jpg';
+        const storagePath = `${session.user.id}/life-log/${entryId}/${crypto.randomUUID()}.${extension}`;
+        const { data: uploadData, error: uploadError } =
+          await supabase.storage
+            .from('lifebud-images')
+            .upload(storagePath, newImageFile, {
+              contentType: newImageFile.type,
+            });
+        if (uploadError) {
+          console.error('Could not upload Life Log image:', uploadError);
+          return false;
+        }
+        newImagePath = uploadData.path;
+        uploadedPath = uploadData.path;
+      }
+
+      //update supabase
+      const { data, error } = await supabase
+        .from('life_log_entries')
+        .update({
+          title: newTitle.trim() || null,
+          text: newText.trim() || null,
+          image_path: newImagePath || null,
+          is_featured: newIsFeatured,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', entryId)
+        .select('id, title, text, is_featured, created_at')
+        .single();
+      if (error) {
+        console.error('Could not edit Life Log entry:', error);
+        if (uploadedPath) {
+          await supabase.storage
+            .from('lifebud-images')
+            .remove([uploadedPath]);
+        }
         return false;
       }
-      newImagePath = uploadData.path;
-      uploadedPath = uploadData.path;
-    }
-
-    //update supabase
-    const { data, error } = await supabase
-      .from('life_log_entries')
-      .update({
-        title: newTitle.trim() || null,
-        text: newText.trim() || null,
-        image_path: newImagePath || null,
-        is_featured: newIsFeatured,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', entryId)
-      .select('id, title, text, is_featured, created_at')
-      .single();
-    if (error) {
-      console.error('Could not edit Life Log entry:', error);
-      if (uploadedPath) {
-        await supabase.storage
+      
+      //delete old picture?
+      if (currentEntry.imagePath && ( //if old image exists AND
+        shouldRemoveImage || //user removed photo OR
+        (uploadedPath && currentEntry.imagePath !== uploadedPath) // user replaced photo
+      )) {
+        const {error: removeOldImageError} = await supabase.storage
           .from('lifebud-images')
-          .remove([uploadedPath]);
+          .remove([currentEntry.imagePath]);
+        if (removeOldImageError) {
+          console.error('Could not delete old Life Log image:', removeOldImageError)
+        }
       }
-      return false;
-    }
-    
-    //delete old picture?
-    if (currentEntry.imagePath && ( //if old image exists AND
-      shouldRemoveImage || //user removed photo OR
-      (uploadedPath && currentEntry.imagePath !== uploadedPath) // user replaced photo
-    )) {
-      const {error: removeOldImageError} = await supabase.storage
-        .from('lifebud-images')
-        .remove([currentEntry.imagePath]);
-      if (removeOldImageError) {
-        console.error('Could not delete old Life Log image:', removeOldImageError)
-      }
-    }
 
-    //delete all membership rows for this entry
-    const {error: deleteMembershipsError} = await supabase
-      .from('life_log_collection_memberships')
-      .delete()
-      .eq('life_log_entry_id', entryId);
-    if (deleteMembershipsError) {
-      console.error('Could not remove old Life Log collections:', deleteMembershipsError);
-      return false;
-    }
-    //add new set of membership rows
-    if (newCollectionIds.length>0) {
-      const newMembershipRows = newCollectionIds.map(collectionId=>({
-        life_log_entry_id: entryId,
-        collection_id: collectionId,
-      }));
-      const {error: insertMembershipsError} = await supabase
+      //delete all membership rows for this entry
+      const {error: deleteMembershipsError} = await supabase
         .from('life_log_collection_memberships')
-        .insert(newMembershipRows);
-      if (insertMembershipsError) {
-        console.error('Could not save new Life Log collections:', insertMembershipsError);
+        .delete()
+        .eq('life_log_entry_id', entryId);
+      if (deleteMembershipsError) {
+        console.error('Could not remove old Life Log collections:', deleteMembershipsError);
         return false;
       }
-    }
+      //add new set of membership rows
+      if (newCollectionIds.length>0) {
+        const newMembershipRows = newCollectionIds.map(collectionId=>({
+          life_log_entry_id: entryId,
+          collection_id: collectionId,
+        }));
+        const {error: insertMembershipsError} = await supabase
+          .from('life_log_collection_memberships')
+          .insert(newMembershipRows);
+        if (insertMembershipsError) {
+          console.error('Could not save new Life Log collections:', insertMembershipsError);
+          return false;
+        }
+      }
 
-    setLifeLogEntries(currentEntries => currentEntries.map(entry => entry.id === entryId
-      ? {...entry, title: data.title ?? '',text: data.text ?? '', isFeatured: data.is_featured, 
-        collectionIds: newCollectionIds, imagePath: newImagePath, 
-        imageData: shouldRemoveImage? '' : newImageData}
-      : entry
-    )
-  );
+      setLifeLogEntries(currentEntries => currentEntries.map(entry => entry.id === entryId
+        ? {...entry, title: data.title ?? '',text: data.text ?? '', isFeatured: data.is_featured, 
+          collectionIds: newCollectionIds, imagePath: newImagePath, 
+          imageData: shouldRemoveImage? '' : newImageData}
+        : entry
+      )
+    );
 
-  return true;
+      return true;
+    });
   }
   async function deleteLifeLogEntry(entryId) {
     const entryToDelete = lifeLogEntries.find(entry=>entry.id===entryId);
@@ -542,7 +557,8 @@ export default function App() {
 
   async function addGoal(goalText, category, isFeatured, collectionIds) {
     if (!session) return false;
-    const {data, error} = await supabase
+    return withLoading(async () => {
+      const {data, error} = await supabase
       .from('goals')
       .insert({user_id: session.user.id, text:goalText, category, is_featured:isFeatured})
       .select('id,text,category,is_featured,created_at') 
@@ -577,7 +593,8 @@ export default function App() {
       createdAt: new Date(data.created_at).getTime(), collectionIds,
     }
     setGoals(currentGoals => [newGoal, ...currentGoals]);
-    return true;
+      return true;
+    });
   }
   async function completeGoal(goalId) {
     if (!session) return false;
@@ -631,7 +648,8 @@ export default function App() {
   }
   async function editGoal(goalId, newText, newCategory, newIsFeatured, newCollectionIds) {
     if (!session) return false;
-    const {data, error} = await supabase
+    return withLoading(async () => {
+      const {data, error} = await supabase
       .from('goals')
       .update({text:newText, category: newCategory, is_featured: newIsFeatured, updated_at: new Date().toISOString(),})
       .eq('id', goalId)
@@ -671,7 +689,8 @@ export default function App() {
         collectionIds: newCollectionIds,}
       : goal
     ))
-    return true;
+      return true;
+    });
   }
   async function editAccomplishment(accomplishmentId, newText, newCategory, newIsFeatured, newCollectionIds) {
     if (!session) return false;
@@ -781,8 +800,9 @@ export default function App() {
   }
   async function editCollection(collectionId, newName) {
     if (!session) return false;
+    return withLoading(async () => {
 
-    const { data, error } = await supabase
+      const { data, error } = await supabase
       .from('collections')
       .update({name: newName, updated_at: new Date().toISOString(),})
       .eq('id', collectionId)
@@ -796,7 +816,8 @@ export default function App() {
     setCollections(currentCollections => currentCollections.map(
       collection => collection.id === collectionId
           ? {...collection, name: data.name} : collection));
-    return true;
+      return true;
+    });
   }
   async function deleteCollection(collectionId) {
     if (!session) return;
@@ -939,6 +960,11 @@ export default function App() {
             onEditCollection={editCollection} />
         ) : null}
       </section>
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="loading-spinner" />
+        </div>
+      )}
     </main>
   );
 }

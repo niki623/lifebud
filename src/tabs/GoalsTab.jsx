@@ -133,7 +133,7 @@ export default function GoalsTab({ goals, collections,onAddGoal, onCompleteGoal,
                   <p>{goalCategoryLabels[goal.category]}</p>
                 )}
 
-                {/*Collections*/}
+                {/*Display "collections" and "feature on profile" if editing*/}
                 {isEditing && (
                   <>
                     <div className="collection-row">

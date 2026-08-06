@@ -200,9 +200,9 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
               )}
 
               {/*Image*/}
-              {(isEditing? editImageData : entry.imageData) && (
+              {(isEditing? editImageData : entry.imageData) && ( //render image at all?
                 <img 
-                  src={isEditing ? editImageData : entry.imageData} 
+                  src={isEditing ? editImageData : entry.imageData} //if so, which image?
                   alt={entry.title || 'Life Log entry'} 
                   className="entry-image"
                 />
@@ -210,6 +210,22 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
 
               {isEditing && (
                 <>
+                  <label>
+                    Change photo
+                    <input
+                      className="file-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditImageChange}
+                      ref={editFileInputRef}
+                    />
+                  </label>
+                  {editImageData && (
+                    <button type="button" onClick={removeEditImage}>
+                      Remove Photo
+                    </button>
+                  )}
+
                   <div className="collection-row">
                     <p className="edit-label">Add to collections:</p>
 
