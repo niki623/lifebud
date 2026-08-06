@@ -526,33 +526,33 @@ export default function App() {
     });
   }
   async function deleteLifeLogEntry(entryId) {
-    const entryToDelete = lifeLogEntries.find(entry=>entry.id===entryId);
-    if (!entryToDelete) return false;
+    if (!session) return false;
+    return withLoading(async () => {
+      const entryToDelete = lifeLogEntries.find(entry=>entry.id===entryId);
+      if (!entryToDelete) return false;
 
-    // if image exists, delete
-    if (entryToDelete.imagePath) {
-      const {error: removeImageError} = await supabase.storage
-        .from('lifebud-images')
-        .remove([entryToDelete.imagePath]);
-      if (removeImageError) {
-        console.error('Could not delete Life Log image:', removeImageError);
+      // if image exists, delete
+      if (entryToDelete.imagePath) {
+        const {error: removeImageError} = await supabase.storage
+          .from('lifebud-images')
+          .remove([entryToDelete.imagePath]);
+        if (removeImageError) {
+          console.error('Could not delete Life Log image:', removeImageError);
+          return false;
+        }
+      }
+      const { error } = await supabase
+        .from('life_log_entries')
+        .delete()
+        .eq('id', entryId);
+      if (error) {
+        console.error('Could not delete Life Log entry:', error);
         return false;
       }
-    }
-    //delete database row
-    if (!session) return false;
-    const { error } = await supabase
-      .from('life_log_entries')
-      .delete()
-      .eq('id', entryId);
-    if (error) {
-      console.error('Could not delete Life Log entry:', error);
-      return false;
-    }
-    //update state
-    setLifeLogEntries(currentEntries =>
-      currentEntries.filter(entry => entry.id !== entryId));
-  return true;
+      setLifeLogEntries(currentEntries =>
+        currentEntries.filter(entry => entry.id !== entryId));
+      return true;
+    });
   }
 
   async function addGoal(goalText, category, isFeatured, collectionIds) {
@@ -598,53 +598,54 @@ export default function App() {
   }
   async function completeGoal(goalId) {
     if (!session) return false;
-
-    const completedGoal = goals.find(goal=>goal.id===goalId);
-    if (!completedGoal) return false;
-    const {data, error: insertError} = await supabase
-      .from('accomplishments')
-      .insert({user_id: session.user.id, text: completedGoal.text, category: completedGoal.category,
-        is_featured: false, created_at: new Date(completedGoal.createdAt).toISOString()})
-      .select('id, text, category, is_featured, created_at, completed_at')
-      .single();
-    if (insertError) {
-      console.error('Could not complete goal:', insertError);
-      return false;
-    }
-    const {error: deleteError} = await supabase
-      .from('goals')
-      .delete()
-      .eq('id', goalId);
-    if (deleteError) {
-      console.error('Could not remove complete goal:', deleteError);
-      return false;
-    }
-    const newAccomplishment = {id:data.id, text:data.text, category: data.category, 
-      isFeatured: data.is_featured, createdAt: new Date(data.created_at).getTime(), 
-      completedAt: new Date(data.completed_at).getTime(), collectionIds:completedGoal.collectionIds ?? [],
-    };
-    setAccomplishments(current=>[newAccomplishment, ...current]);
-
-    //transfer goal collections to accomplishment collections
-    const completedGoalCollectionIds = completedGoal.collectionIds ?? [];
-    if (completedGoalCollectionIds.length > 0) {
-      const membershipRows = completedGoalCollectionIds.map(
-        collectionId => ({accomplishment_id: data.id, collection_id: collectionId,})
-      )
-      const { error: membershipError } = await supabase
-        .from('accomplishment_collection_memberships')
-        .insert(membershipRows);
-      if (membershipError) {
-        console.error('Could not transfer goal collections:',membershipError);
-        await supabase
-          .from('accomplishments')
-          .delete()
-          .eq('id', data.id);
+    return withLoading(async () => {
+      const completedGoal = goals.find(goal=>goal.id===goalId);
+      if (!completedGoal) return false;
+      const {data, error: insertError} = await supabase
+        .from('accomplishments')
+        .insert({user_id: session.user.id, text: completedGoal.text, category: completedGoal.category,
+          is_featured: false, created_at: new Date(completedGoal.createdAt).toISOString()})
+        .select('id, text, category, is_featured, created_at, completed_at')
+        .single();
+      if (insertError) {
+        console.error('Could not complete goal:', insertError);
         return false;
       }
-    }
-    setGoals(current=>current.filter(goal=>goal.id!==goalId));
-    return true;
+      const {error: deleteError} = await supabase
+        .from('goals')
+        .delete()
+        .eq('id', goalId);
+      if (deleteError) {
+        console.error('Could not remove complete goal:', deleteError);
+        return false;
+      }
+      const newAccomplishment = {id:data.id, text:data.text, category: data.category, 
+        isFeatured: data.is_featured, createdAt: new Date(data.created_at).getTime(), 
+        completedAt: new Date(data.completed_at).getTime(), collectionIds:completedGoal.collectionIds ?? [],
+      };
+      setAccomplishments(current=>[newAccomplishment, ...current]);
+
+      //transfer goal collections to accomplishment collections
+      const completedGoalCollectionIds = completedGoal.collectionIds ?? [];
+      if (completedGoalCollectionIds.length > 0) {
+        const membershipRows = completedGoalCollectionIds.map(
+          collectionId => ({accomplishment_id: data.id, collection_id: collectionId,})
+        )
+        const { error: membershipError } = await supabase
+          .from('accomplishment_collection_memberships')
+          .insert(membershipRows);
+        if (membershipError) {
+          console.error('Could not transfer goal collections:',membershipError);
+          await supabase
+            .from('accomplishments')
+            .delete()
+            .eq('id', data.id);
+          return false;
+        }
+      }
+      setGoals(current=>current.filter(goal=>goal.id!==goalId));
+      return true;
+    });
   }
   async function editGoal(goalId, newText, newCategory, newIsFeatured, newCollectionIds) {
     if (!session) return false;
@@ -694,109 +695,118 @@ export default function App() {
   }
   async function editAccomplishment(accomplishmentId, newText, newCategory, newIsFeatured, newCollectionIds) {
     if (!session) return false;
-    const {data, error} = await supabase
-      .from('accomplishments')
-      .update({text: newText, category: newCategory, is_featured: newIsFeatured, updated_at: new Date().toISOString()})
-      .eq('id', accomplishmentId)
-      .select('id, text, category, is_featured, completed_at')
-      .single();
-    if (error) {
-      console.error('Could not edit accomplishment:', error);
-      return false;
-    }
-
-    const {error: deleteMembershipsError} = await supabase
-      .from('accomplishment_collection_memberships')
-      .delete()
-      .eq('accomplishment_id', accomplishmentId);
-    if (deleteMembershipsError) {
-      console.error('Could not remove old accomplishment collections:', deleteMembershipsError);
-      return false;
-    }
-
-    if (newCollectionIds.length > 0) {
-      const newMembershipRows = newCollectionIds.map(collectionId => ({
-        accomplishment_id: accomplishmentId,
-        collection_id: collectionId,
-      }));
-      const {error: insertMembershipsError} = await supabase
-        .from('accomplishment_collection_memberships')
-        .insert(newMembershipRows);
-      if (insertMembershipsError) {
-        console.error('Could not save new accomplishment collections:', insertMembershipsError);
+    return withLoading(async () => {
+      const {data, error} = await supabase
+        .from('accomplishments')
+        .update({text: newText, category: newCategory, is_featured: newIsFeatured, updated_at: new Date().toISOString()})
+        .eq('id', accomplishmentId)
+        .select('id, text, category, is_featured, completed_at')
+        .single();
+      if (error) {
+        console.error('Could not edit accomplishment:', error);
         return false;
       }
-    }
 
-    setAccomplishments(currentAccomplishments => currentAccomplishments.map(acc =>
-      acc.id === accomplishmentId
-        ? {...acc, text: data.text, category: data.category, isFeatured: data.is_featured,
-          collectionIds: newCollectionIds,}
-        : acc
-    ));
-    return true;
+      const {error: deleteMembershipsError} = await supabase
+        .from('accomplishment_collection_memberships')
+        .delete()
+        .eq('accomplishment_id', accomplishmentId);
+      if (deleteMembershipsError) {
+        console.error('Could not remove old accomplishment collections:', deleteMembershipsError);
+        return false;
+      }
+
+      if (newCollectionIds.length > 0) {
+        const newMembershipRows = newCollectionIds.map(collectionId => ({
+          accomplishment_id: accomplishmentId,
+          collection_id: collectionId,
+        }));
+        const {error: insertMembershipsError} = await supabase
+          .from('accomplishment_collection_memberships')
+          .insert(newMembershipRows);
+        if (insertMembershipsError) {
+          console.error('Could not save new accomplishment collections:', insertMembershipsError);
+          return false;
+        }
+      }
+
+      setAccomplishments(currentAccomplishments => currentAccomplishments.map(acc =>
+        acc.id === accomplishmentId
+          ? {...acc, text: data.text, category: data.category, isFeatured: data.is_featured,
+            collectionIds: newCollectionIds,}
+          : acc
+      ));
+      return true;
+    });
   }
   async function deleteGoal(goalId) {
     if (!session) return false;
-    const {error} = await supabase
-      .from('goals')
-      .delete()
-      .eq('id', goalId)
-    if (error) {
-      console.error('Could not delete goal:', error);
-      return false;
-    } 
-    setGoals(currentGoals => currentGoals.filter(goal=>goal.id!==goalId));
-    return true;
+    return withLoading(async () => {
+      const {error} = await supabase
+        .from('goals')
+        .delete()
+        .eq('id', goalId)
+      if (error) {
+        console.error('Could not delete goal:', error);
+        return false;
+      } 
+      setGoals(currentGoals => currentGoals.filter(goal=>goal.id!==goalId));
+      return true;
+    });
   }
 
   async function toggleAccomplishmentFeatured(accomplishmentId) {
     if (!session) return;
-    const accomplishment = accomplishments.find(acc=>acc.id===accomplishmentId);
-    if (!accomplishment) return;
-    const {data, error} = await supabase
-      .from('accomplishments')
-      .update({is_featured: !accomplishment.isFeatured, updated_at: new Date().toISOString()})
-      .eq('id', accomplishmentId)
-      .select('is_featured')
-      .single();
-    if (error) {
-      console.error('Could not update accomplishment:', error);
-      return;
-    }
-    setAccomplishments(currentAccomplishments =>
-      currentAccomplishments.map(acc => acc.id === accomplishmentId
-      ? { ...acc, isFeatured: data.is_featured }: acc));
+    return withLoading(async () => {
+      const accomplishment = accomplishments.find(acc=>acc.id===accomplishmentId);
+      if (!accomplishment) return;
+      const {data, error} = await supabase
+        .from('accomplishments')
+        .update({is_featured: !accomplishment.isFeatured, updated_at: new Date().toISOString()})
+        .eq('id', accomplishmentId)
+        .select('is_featured')
+        .single();
+      if (error) {
+        console.error('Could not update accomplishment:', error);
+        return;
+      }
+      setAccomplishments(currentAccomplishments =>
+        currentAccomplishments.map(acc => acc.id === accomplishmentId
+        ? { ...acc, isFeatured: data.is_featured }: acc));
+    });
   }
   
   async function deleteAccomplishment(accomplishmentId) {
     if (!session) return;
-    const {error} = await supabase
-      .from('accomplishments')
-      .delete()
-      .eq('id', accomplishmentId)
-    if (error) {
-      console.error('Could not delete accomplishment:', error);
-      return;
-    }
-    setAccomplishments(current => current.filter(acc=>acc.id!==accomplishmentId))
+    return withLoading(async () => {
+      const {error} = await supabase
+        .from('accomplishments')
+        .delete()
+        .eq('id', accomplishmentId)
+      if (error) {
+        console.error('Could not delete accomplishment:', error);
+        return;
+      }
+      setAccomplishments(current => current.filter(acc=>acc.id!==accomplishmentId));
+    });
   }
 
   async function addCollection(collectionName) {
     if (!session) return false;
-    const {data, error} = await supabase
-      .from('collections')
-      .insert({user_id: session.user.id, name:collectionName})
-      .select('id, name, created_at')
-      .single();
-    if (error) {
-      console.error('Could not add collection:', error);
-      return false;
-    }
-    const newCollection = {id: data.id, name: data.name, createdAt: new Date(data.created_at).getTime()};
-  
-    setCollections(currentCollections => [newCollection,...currentCollections,]);
-    return true;
+    return withLoading(async () => {
+      const {data, error} = await supabase
+        .from('collections')
+        .insert({user_id: session.user.id, name:collectionName})
+        .select('id, name, created_at')
+        .single();
+      if (error) {
+        console.error('Could not add collection:', error);
+        return false;
+      }
+      const newCollection = {id: data.id, name: data.name, createdAt: new Date(data.created_at).getTime()};
+      setCollections(currentCollections => [newCollection,...currentCollections,]);
+      return true;
+    });
   }
   async function editCollection(collectionId, newName) {
     if (!session) return false;
@@ -821,23 +831,24 @@ export default function App() {
   }
   async function deleteCollection(collectionId) {
     if (!session) return;
-    const {error} = await supabase
-      .from('collections')
-      .delete()
-      .eq('id', collectionId)
-    if (error) {
-      console.error('Could not delete collection:', error);
-      return;
-    }
-    setCollections(currentCollections =>currentCollections.filter(
-      collection => collection.id !== collectionId));
-    setLifeLogEntries(currentEntries =>
-      removeCollectionFromItems(currentEntries, collectionId));
-    setGoals(currentGoals =>
-      removeCollectionFromItems(currentGoals, collectionId));
-    setAccomplishments(currentAccomplishments =>
-      removeCollectionFromItems(currentAccomplishments,collectionId));
-    return;
+    return withLoading(async () => {
+      const {error} = await supabase
+        .from('collections')
+        .delete()
+        .eq('id', collectionId)
+      if (error) {
+        console.error('Could not delete collection:', error);
+        return;
+      }
+      setCollections(currentCollections =>currentCollections.filter(
+        collection => collection.id !== collectionId));
+      setLifeLogEntries(currentEntries =>
+        removeCollectionFromItems(currentEntries, collectionId));
+      setGoals(currentGoals =>
+        removeCollectionFromItems(currentGoals, collectionId));
+      setAccomplishments(currentAccomplishments =>
+        removeCollectionFromItems(currentAccomplishments,collectionId));
+    });
   }
 
   function exportBackup() {
