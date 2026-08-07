@@ -23,7 +23,7 @@ LifeBud is a personal life management app designed to help users reflect, organi
 * Create and manage personal goals.
 * Categorize goals as either "small", "big", or "milestone"
 * Mark goals as completed, automatically migrating them to the accomplishments tab.
-* Edit goals and delete goals.
+* Edit and delete goals.
 * Organize goals into collections.
 
 ### Accomplishments
