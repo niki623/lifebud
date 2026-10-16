@@ -62,7 +62,7 @@ export default function App() {
     }
   }
 
-  /* run once (for initial render, log in/out) */
+  /* run once (for initial render + adding listener for log in/out) */
   useEffect(() => { 
     async function loadSession() { /* only runs once when app starts */
       try {
@@ -424,7 +424,6 @@ export default function App() {
     return true;
     });
   }
-
   async function editLifeLogEntry(entryId, newTitle, newText, newIsFeatured, 
     newCollectionIds, newImageData, newImageFile, shouldRemoveImage) {
     if (!session) return false;

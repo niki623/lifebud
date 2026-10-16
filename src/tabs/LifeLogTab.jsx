@@ -45,7 +45,6 @@ export default function LifeLogTab({ lifeLogEntries, collections, onAddEntry, on
     readImageFile(e.target, setEditImageData, setEditImageFile);
     setShouldRemoveEditImage(false);
   }
-
   function removeSelectedImage() {
     setImageData('');
     setImageFile(null);
