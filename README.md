@@ -118,7 +118,7 @@ npm run dev
 
 ## Motivation
 
-LifeBud began as a personal project to explore React and Firebase while designing an application centered around reflection rather than social media. Throughout development, I focused on creating an editing experience that feels natural, user-friendly, and intuitive.
+LifeBud began as a personal project to explore React and Firebase while designing an application centered around reflection rather than external validation, unlike social media. Throughout development, I focused on creating an editing experience that feels natural, user-friendly, and intuitive.
 ## License
 
 This project is for educational and portfolio purposes.
